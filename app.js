@@ -93,7 +93,7 @@ function primeAudio(){
   // Set volumes (feel free to tweak)
   hum.volume = 0.22;
   beep.volume = 0.35;
-  type.volume = 0.25;
+  typeClips.forEach(a => a.volume = 0.22);
 
   // Try to play hum
   hum.play().catch(()=>{ /* ignore */ });
