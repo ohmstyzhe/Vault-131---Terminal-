@@ -44,7 +44,15 @@ const statusText = document.getElementById("statusText");
 
 const hum = document.getElementById("hum");
 const beep = document.getElementById("beep");
-const type = document.getElementById("type");
+/* ===== FEATURE: TYPING VARIANTS START ===== */
+const typeClips = [
+  document.getElementById("type1"),
+  document.getElementById("type2"),
+  document.getElementById("type3"),
+].filter(Boolean);
+
+let lastTypeIndex = -1;
+/* ===== FEATURE: TYPING VARIANTS END ===== */
 
 let audioEnabled = false;
 /* ===== FEATURE: DOM HOOKS END ===== */
