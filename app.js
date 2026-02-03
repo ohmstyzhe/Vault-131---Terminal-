@@ -59,6 +59,62 @@ const TYPE_THROTTLE_MS = 55;
 let audioEnabled = false;
 /* ===== FEATURE: DOM HOOKS END ===== */
 
+/* ===== FEATURE: iPAD AUDIO HARDENING START ===== */
+let audioCtx = null;
+let beepBuf = null;
+let typeBufs = [];
+
+async function fetchArrayBuffer(url){
+  const res = await fetch(url, { cache: "no-store" });
+  if(!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+  return await res.arrayBuffer();
+}
+
+async function initWebAudio(){
+  if(audioCtx) return;
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // Resume is REQUIRED on iOS after a gesture
+  if(audioCtx.state !== "running"){
+    await audioCtx.resume().catch(()=>{});
+  }
+
+  // Load + decode buffers (beep + 3 typing clips)
+  try{
+    const beepData = await fetchArrayBuffer("assets/ui-beep.mp3");
+    beepBuf = await audioCtx.decodeAudioData(beepData);
+
+    const t1 = await fetchArrayBuffer("assets/type1.mp3");
+    const t2 = await fetchArrayBuffer("assets/type2.mp3");
+    const t3 = await fetchArrayBuffer("assets/type3.mp3");
+    typeBufs = [
+      await audioCtx.decodeAudioData(t1),
+      await audioCtx.decodeAudioData(t2),
+      await audioCtx.decodeAudioData(t3),
+    ];
+  }catch(e){
+    // If this fails, we fall back to <audio> elements
+    console.log("WebAudio init failed:", e);
+  }
+}
+
+function playBuffer(buf, { volume = 0.3, rate = 1.0 } = {}){
+  if(!audioCtx || !buf) return false;
+  const src = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  gain.gain.value = volume;
+
+  src.buffer = buf;
+  src.playbackRate.value = rate;
+  src.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  src.start(0);
+  return true;
+}
+/* ===== FEATURE: iPAD AUDIO HARDENING END ===== */
+
 
 /* ===== FEATURE: STATE (SAVED) START ===== */
 const STORAGE_KEY = "vault131_state_v1";
@@ -87,28 +143,61 @@ let state = loadState() || {
 /* ===== FEATURE: STATE (SAVED) END ===== */
 
 
-/* ===== FEATURE: AUDIO CONTROL START ===== */
-function primeAudio(){
-  // Must be called from a user gesture (click/tap) on iPad Safari
-  audioEnabled = true;
+/* ===== FEATURE: iPAD AUDIO HARDENING START ===== */
+let audioCtx = null;
+let beepBuf = null;
+let typeBufs = [];
 
-  // Set volumes (feel free to tweak)
-  hum.volume = 0.22;
-  beep.volume = 0.35;
-  typeClips.forEach(a => a.volume = 0.22);
-
-  // Try to play hum
-  hum.play().catch(()=>{ /* ignore */ });
-
-  // A tiny “beep” to confirm audio is unlocked
-  playBeep();
+async function fetchArrayBuffer(url){
+  const res = await fetch(url, { cache: "no-store" });
+  if(!res.ok) throw new Error(`HTTP ${res.status} for ${url}`);
+  return await res.arrayBuffer();
 }
 
-function playBeep(){
-  if(!audioEnabled) return;
-  beep.currentTime = 0;
-  beep.play().catch(()=>{});
+async function initWebAudio(){
+  if(audioCtx) return;
+
+  audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  // Resume is REQUIRED on iOS after a gesture
+  if(audioCtx.state !== "running"){
+    await audioCtx.resume().catch(()=>{});
+  }
+
+  // Load + decode buffers (beep + 3 typing clips)
+  try{
+    const beepData = await fetchArrayBuffer("assets/ui-beep.mp3");
+    beepBuf = await audioCtx.decodeAudioData(beepData);
+
+    const t1 = await fetchArrayBuffer("assets/type1.mp3");
+    const t2 = await fetchArrayBuffer("assets/type2.mp3");
+    const t3 = await fetchArrayBuffer("assets/type3.mp3");
+    typeBufs = [
+      await audioCtx.decodeAudioData(t1),
+      await audioCtx.decodeAudioData(t2),
+      await audioCtx.decodeAudioData(t3),
+    ];
+  }catch(e){
+    // If this fails, we fall back to <audio> elements
+    console.log("WebAudio init failed:", e);
+  }
 }
+
+function playBuffer(buf, { volume = 0.3, rate = 1.0 } = {}){
+  if(!audioCtx || !buf) return false;
+  const src = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  gain.gain.value = volume;
+
+  src.buffer = buf;
+  src.playbackRate.value = rate;
+  src.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  src.start(0);
+  return true;
+}
+/* ===== FEATURE: iPAD AUDIO HARDENING END ===== */
 
 /* ===== FEATURE: ALTERNATING TYPE SOUND START ===== */
 function playType(){
