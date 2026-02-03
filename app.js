@@ -159,8 +159,16 @@ function wireButtonSfx(root = document){
 /* ===== FEATURE: TYPING SFX START ===== */
 function wireTypingSfx(root = document){
   const inputs = root.querySelectorAll("input");
+
   inputs.forEach(inp => {
+    // Best case (real key taps / external keyboard)
+    inp.addEventListener("keydown", () => playType());
+
+    // iPad fallback (virtual keyboard / autocorrect)
     inp.addEventListener("input", () => playType());
+
+    // Extra fallback for some iOS text replacement behaviors
+    inp.addEventListener("change", () => playType());
   });
 }
 /* ===== FEATURE: TYPING SFX END ===== */
