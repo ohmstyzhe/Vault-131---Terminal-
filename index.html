@@ -32,16 +32,21 @@
   </main>
   <!-- ===== FEATURE: CRT WRAPPER END ===== -->
 
-  <!-- ===== FEATURE: AUDIO ELEMENTS START ===== -->
-  <!-- iPad Safari requires user gesture to play audio, so we start on button click -->
-  <audio id="hum" src="assets/crt-hum.mp3" loop preload="auto" playsinline></audio>
-  <audio id="beep" src="assets/ui-beep.mp3" preload="auto" playsinline></audio>
-<!-- ===== FEATURE: TYPING VARIANTS START ===== -->
-<audio id="type1" src="assets/type1.mp3" preload="auto" playsinline></audio>
-<audio id="type2" src="assets/type2.mp3" preload="auto" playsinline></audio>
-<audio id="type3" src="assets/type3.mp3" preload="auto" playsinline></audio>
-<!-- ===== FEATURE: TYPING VARIANTS END ===== -->
-  <!-- ===== FEATURE: AUDIO ELEMENTS END ===== -->
+<!-- ===== FEATURE: AUDIO ELEMENTS START (iPad Safari friendly) ===== -->
+<!-- Hum stays as an <audio> tag because it loops in the background -->
+<audio
+  id="hum"
+  src="assets/crt-hum.mp3"
+  preload="auto"
+  loop
+  playsinline
+></audio>
+
+<!-- NOTE:
+  Beep + typing are loaded by app.js using fetch() + AudioContext decoding.
+  So we do NOT need extra <audio> tags for those anymore.
+-->
+<!-- ===== FEATURE: AUDIO ELEMENTS END ===== -->
 
   <script src="app.js"></script>
 </body>
