@@ -1,3 +1,22 @@
+/* ===== FEATURE: HEAVY CRT VARIABLES START ===== */
+:root{
+  --crt-bg: #020402;
+  --crt-green: #7CFF7A;          /* phosphor green */
+  --crt-green-dim: rgba(124,255,122,.60);
+  --crt-glow: rgba(124,255,122,.55);
+  --crt-glow-strong: rgba(124,255,122,.95);
+
+  --crt-scanline: rgba(0,0,0,.26);
+  --crt-scanline-2: rgba(255,255,255,.02);
+
+  --crt-vignette: rgba(0,0,0,.65);
+  --crt-edge: rgba(0,0,0,.82);
+
+  --crt-noise-opacity: .17;      /* increase for more grit */
+  --crt-mask-opacity: .17;       /* RGB subpixel mask strength */
+  --crt-flicker: .06;            /* flicker intensity */
+}
+/* ===== FEATURE: HEAVY CRT VARIABLES END ===== */
 /* ===== FEATURE: THEME + RESET START ===== */
 :root{
   --bg: #000;
