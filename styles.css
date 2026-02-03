@@ -337,3 +337,25 @@ button:hover{
   font-size: 22px;
 }
 /* ===== FEATURE: UI COMPONENTS END ===== */
+
+/* ===== EXTRA LAYER THAT YOUR HTML WAS MISSING ===== */
+.crt__outer{
+  position:absolute;
+  inset:0;
+  border-radius:28px;
+  pointer-events:none;
+
+  background:
+    radial-gradient(140% 120% at 50% 35%,
+      rgba(255,255,255,.08) 0%,
+      rgba(255,255,255,.02) 20%,
+      rgba(0,0,0,0) 50%),
+    radial-gradient(120% 100% at 50% 50%,
+      rgba(0,0,0,0) 40%,
+      rgba(0,0,0,.70) 82%,
+      rgba(0,0,0,.90) 100%);
+
+  mix-blend-mode: screen;
+  opacity: .9;
+  filter: blur(.25px);
+}
