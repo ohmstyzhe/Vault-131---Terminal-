@@ -52,6 +52,8 @@ const typeClips = [
 ].filter(Boolean);
 
 let lastTypeIndex = -1;
+let lastTypeAt = 0;
+const TYPE_THROTTLE_MS = 55;
 /* ===== FEATURE: TYPING VARIANTS END ===== */
 
 let audioEnabled = false;
