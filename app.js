@@ -114,6 +114,10 @@ function playBeep(){
 function playType(){
   if(!audioEnabled || typeClips.length === 0) return;
 
+  const now = performance.now();
+  if(now - lastTypeAt < TYPE_THROTTLE_MS) return; // throttle spam
+  lastTypeAt = now;
+
   // Pick a different clip than last time (when possible)
   let idx = Math.floor(Math.random() * typeClips.length);
   if(typeClips.length > 1 && idx === lastTypeIndex){
@@ -123,8 +127,8 @@ function playType(){
 
   const a = typeClips[idx];
 
-  // Small human-ish variation
-  a.playbackRate = 0.92 + Math.random() * 0.22; // 0.92–1.14
+  // Subtle variation so it feels organic
+  a.playbackRate = 0.95 + Math.random() * 0.15; // 0.95–1.10
   a.volume = 0.18 + Math.random() * 0.10;       // 0.18–0.28
 
   try { a.currentTime = 0; } catch(e) {}
