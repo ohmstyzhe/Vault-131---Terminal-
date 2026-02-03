@@ -153,52 +153,139 @@ function playBuffer(buf, { volume = 0.3, rate = 1.0 } = {}){
 /* ===== FEATURE: iPAD AUDIO HARDENING (WEB AUDIO) END ===== */
 
 
-/* ===== FEATURE: AUDIO CONTROL START ===== */
+/* ===== FEATURE: AUDIO CONTROL + DIAGNOSTICS START ===== */
+let audioCtx = null;
+let beepBuf = null;
+let typeBufs = [];
+let lastTypeAt = 0;
+const TYPE_THROTTLE_MS = 55;
+
+// iPad-proof: create / resume AudioContext ONLY from user gesture
+async function ensureAudioContext(){
+  if(!audioCtx){
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if(audioCtx.state !== "running"){
+    await audioCtx.resume().catch(()=>{});
+  }
+  return audioCtx;
+}
+
+async function fetchOK(url){
+  try{
+    const res = await fetch(url, { cache: "no-store" });
+    return { ok: res.ok, status: res.status };
+  }catch(e){
+    return { ok: false, status: "fetch_failed" };
+  }
+}
+
+async function loadBuffers(){
+  // If buffers already loaded, skip
+  if(beepBuf && typeBufs.length) return;
+
+  try{
+    const ctx = await ensureAudioContext();
+
+    // Fetch + decode
+    const beepData = await (await fetch("assets/ui-beep.mp3", { cache:"no-store" })).arrayBuffer();
+    beepBuf = await ctx.decodeAudioData(beepData);
+
+    const t1 = await (await fetch("assets/type1.mp3", { cache:"no-store" })).arrayBuffer();
+    const t2 = await (await fetch("assets/type2.mp3", { cache:"no-store" })).arrayBuffer();
+    const t3 = await (await fetch("assets/type3.mp3", { cache:"no-store" })).arrayBuffer();
+
+    typeBufs = [
+      await ctx.decodeAudioData(t1),
+      await ctx.decodeAudioData(t2),
+      await ctx.decodeAudioData(t3),
+    ];
+  }catch(e){
+    // We'll still have oscillator beep as a fallback.
+    console.log("Buffer decode failed:", e);
+  }
+}
+
+function playOscBeep(){
+  // Guaranteed audible if audio is actually unlocked
+  if(!audioCtx) return false;
+  try{
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = "square";
+    o.frequency.value = 880;
+    g.gain.value = 0.0001;
+
+    o.connect(g);
+    g.connect(audioCtx.destination);
+
+    const t = audioCtx.currentTime;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.12, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
+
+    o.start(t);
+    o.stop(t + 0.09);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function playBuffer(buf, { volume = 0.25, rate = 1.0 } = {}){
+  if(!audioCtx || !buf) return false;
+  const src = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  gain.gain.value = volume;
+  src.buffer = buf;
+  src.playbackRate.value = rate;
+  src.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start(0);
+  return true;
+}
+
 async function primeAudio(){
   audioEnabled = true;
 
-  // Fallback HTMLAudio volumes
-  if(hum) hum.volume = 0.22;
-  if(beep) beep.volume = 0.35;
-  typeClips.forEach(a => a.volume = 0.22);
+  // 1) Ensure AudioContext is running (user gesture!)
+  await ensureAudioContext();
 
-  // Start WebAudio (most reliable on iPad)
-  await initWebAudio();
-
-  // Prime HTMLAudio (play/pause trick)
-  try{
-    if(beep){
-      beep.currentTime = 0;
-      await beep.play();
-      beep.pause();
-      beep.currentTime = 0;
-    }
-  }catch(e){}
-
-  // Start hum loop (might fail if iOS blocks; user can tap again)
+  // 2) Try to start HTMLAudio hum (optional; some iPads block it even when SFX works)
   try{
     if(hum){
+      hum.volume = 0.22;
       hum.currentTime = 0;
       await hum.play();
     }
   }catch(e){
-    setStatus("Audio blocked — tap ENABLE / RE-ENABLE AUDIO again.");
+    // not fatal
   }
 
-  // Confirmation beep
-  playBeep();
+  // 3) Load decoded buffers for beep/type (most reliable)
+  await loadBuffers();
+
+  // 4) Make a guaranteed oscillator beep so you KNOW it unlocked
+  const ok = playOscBeep();
+  if(ok){
+    setStatus("AUDIO: unlocked ✅ (if you heard a short beep)");
+  }else{
+    setStatus("AUDIO: still locked ❌ (tap ENABLE AUDIO again)");
+  }
+
+  // 5) Diagnostics: check if assets can be fetched
+  const d1 = await fetchOK("assets/ui-beep.mp3");
+  const d2 = await fetchOK("assets/type1.mp3");
+  const d3 = await fetchOK("assets/crt-hum.mp3");
+  setStatus(`AUDIO CHECK → beep:${d1.ok ? "OK" : d1.status} type1:${d2.ok ? "OK" : d2.status} hum:${d3.ok ? "OK" : d3.status}`);
 }
 
 function playBeep(){
   if(!audioEnabled) return;
 
-  // Prefer WebAudio
-  if(playBuffer(beepBuf, { volume: 0.28, rate: 1.0 })) return;
-
-  // HTMLAudio fallback
-  if(!beep) return;
-  beep.currentTime = 0;
-  beep.play().catch(()=>{});
+  // Prefer decoded buffer; fallback to oscillator beep
+  if(playBuffer(beepBuf, { volume: 0.22, rate: 1.0 })) return;
+  playOscBeep();
 }
 
 function playType(){
@@ -208,32 +295,19 @@ function playType(){
   if(now - lastTypeAt < TYPE_THROTTLE_MS) return;
   lastTypeAt = now;
 
-  // Prefer WebAudio for typing
+  // Prefer decoded typing buffers
   if(typeBufs && typeBufs.length){
     const idx = Math.floor(Math.random() * typeBufs.length);
     const rate = 0.95 + Math.random() * 0.12;
-    const vol = 0.16 + Math.random() * 0.10;
+    const vol = 0.12 + Math.random() * 0.08;
     playBuffer(typeBufs[idx], { volume: vol, rate });
     return;
   }
 
-  // HTMLAudio fallback (alternate clips)
-  if(typeClips.length === 0) return;
-
-  let idx = Math.floor(Math.random() * typeClips.length);
-  if(typeClips.length > 1 && idx === lastTypeIndex){
-    idx = (idx + 1) % typeClips.length;
-  }
-  lastTypeIndex = idx;
-
-  const a = typeClips[idx];
-  a.playbackRate = 0.95 + Math.random() * 0.15;
-  a.volume = 0.18 + Math.random() * 0.10;
-
-  try { a.currentTime = 0; } catch(e) {}
-  a.play().catch(()=>{});
+  // Last resort: tiny oscillator tick
+  playOscBeep();
 }
-/* ===== FEATURE: AUDIO CONTROL END ===== */
+/* ===== FEATURE: AUDIO CONTROL + DIAGNOSTICS END ===== */
 
 
 /* ===== FEATURE: BUTTON HOVER/TAP SFX START ===== */
