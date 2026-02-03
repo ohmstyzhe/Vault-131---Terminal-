@@ -85,9 +85,13 @@ const TYPE_THROTTLE_MS = 55;
 
 // Required assets
 const ASSETS = {
-  hum: "assets/crt-hum.mp3",
-  beep: "assets/ui-beep.mp3",
-  type: ["assets/type1.mp3", "assets/type2.mp3", "assets/type3.mp3"]
+  hum: "/Vault-131---Terminal-/assets/crt-hum.mp3",
+  beep: "/Vault-131---Terminal-/assets/ui-beep.mp3",
+  type: [
+    "/Vault-131---Terminal-/assets/type1.mp3",
+    "/Vault-131---Terminal-/assets/type2.mp3",
+    "/Vault-131---Terminal-/assets/type3.mp3"
+  ]
 };
 
 function audioLabel(){
