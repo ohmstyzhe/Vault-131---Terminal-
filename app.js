@@ -1,6 +1,6 @@
 /* =========================================================
-   VAULT 131 TERMINAL — single page app (FULL REWRITE)
-   iPad Safari: AudioContext unlock + buffer-based SFX
+   VAULT 131 TERMINAL — single page app
+   Audio rewrite: WebAudio-only (iPad Safari reliable)
    ========================================================= */
 
 /* ===== FEATURE: CONFIG START ===== */
@@ -36,22 +36,19 @@ const CONFIG = {
 /* ===== FEATURE: DOM HOOKS START ===== */
 const screen = document.getElementById("screen");
 const statusText = document.getElementById("statusText");
-const hum = document.getElementById("hum"); // <audio> loop
 /* ===== FEATURE: DOM HOOKS END ===== */
 
 
 /* ===== FEATURE: STATE (SAVED) START ===== */
-const STORAGE_KEY = "vault131_state_v3";
+const STORAGE_KEY = "vault131_state_v4";
 /*
-  We do NOT store access code so you never “spoil” it.
+  Important: we NEVER store the access code (don’t spoil it).
 */
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
-  }catch(e){
-    return null;
-  }
+  }catch(e){ return null; }
 }
 function saveState(s){
   try{
@@ -64,41 +61,66 @@ function resetState(){
 }
 
 let state = loadState() || {
-  stage: "boot",   // boot | login | riddles | success
+  stage: "boot", // boot | login | riddles | success
   name: "",
-  code: "",        // never persisted
+  code: "",      // never persisted
   riddleIndex: 0
 };
 /* ===== FEATURE: STATE (SAVED) END ===== */
 
 
-/* ===== FEATURE: AUDIO ENGINE (iPAD PROOF) START ===== */
-let audioEnabled = false;
-let audioCtx = null;
-let buffersLoaded = false;
-
-let beepBuf = null;
-let typeBufs = [];
-
-let lastTypeAt = 0;
-const TYPE_THROTTLE_MS = 55;
-
+/* ===== FEATURE: STATUS START ===== */
 function setStatus(text){
   statusText.textContent = text;
 }
+/* ===== FEATURE: STATUS END ===== */
 
-function getAudioLabel(){
+
+/* ===== FEATURE: WEB AUDIO ENGINE START ===== */
+let audioEnabled = false;
+let audioCtx = null;
+
+let humBuf = null;
+let beepBuf = null;
+let typeBufs = [];
+
+let humSource = null;
+let humGain = null;
+let sfxGain = null;
+
+let lastTypeIndex = -1;
+let lastTypeAt = 0;
+const TYPE_THROTTLE_MS = 55;
+
+// Required assets
+const ASSETS = {
+  hum: "assets/crt-hum.mp3",
+  beep: "assets/ui-beep.mp3",
+  type: ["assets/type1.mp3", "assets/type2.mp3", "assets/type3.mp3"]
+};
+
+function audioLabel(){
   return audioEnabled ? "AUDIO: ON" : "AUDIO: OFF";
 }
 
-async function ensureAudioContext(){
+async function ensureAudio(){
   if(!audioCtx){
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   }
   if(audioCtx.state === "suspended"){
     await audioCtx.resume().catch(()=>{});
   }
-  return audioCtx;
+  // Create gains once
+  if(!humGain){
+    humGain = audioCtx.createGain();
+    humGain.gain.value = 0.18;
+    humGain.connect(audioCtx.destination);
+  }
+  if(!sfxGain){
+    sfxGain = audioCtx.createGain();
+    sfxGain.gain.value = 0.9;
+    sfxGain.connect(audioCtx.destination);
+  }
 }
 
 async function fetchArrayBuffer(url){
@@ -107,204 +129,188 @@ async function fetchArrayBuffer(url){
   return await res.arrayBuffer();
 }
 
-async function loadAudioBuffers(){
-  if(buffersLoaded) return;
-  const ctx = await ensureAudioContext();
-
-  // Load + decode MP3 SFX
-  const beepData = await fetchArrayBuffer("assets/ui-beep.mp3");
-  beepBuf = await ctx.decodeAudioData(beepData);
-
-  const t1 = await fetchArrayBuffer("assets/type1.mp3");
-  const t2 = await fetchArrayBuffer("assets/type2.mp3");
-  const t3 = await fetchArrayBuffer("assets/type3.mp3");
-
-  typeBufs = [
-    await ctx.decodeAudioData(t1),
-    await ctx.decodeAudioData(t2),
-    await ctx.decodeAudioData(t3),
-  ];
-
-  buffersLoaded = true;
+async function decodeMp3(url){
+  const data = await fetchArrayBuffer(url);
+  return await audioCtx.decodeAudioData(data);
 }
 
-function playBuffer(buf, { volume = 0.25, rate = 1.0 } = {}){
-  if(!audioEnabled || !audioCtx || !buf) return false;
+async function loadAllAudio(){
+  await ensureAudio();
 
-  const src = audioCtx.createBufferSource();
-  const gain = audioCtx.createGain();
-  gain.gain.value = volume;
+  // Load once
+  if(humBuf && beepBuf && typeBufs.length === 3) return;
 
-  src.buffer = buf;
-  src.playbackRate.value = rate;
+  // Any failure here means paths/filenames are wrong or cached deploy
+  humBuf = await decodeMp3(ASSETS.hum);
+  beepBuf = await decodeMp3(ASSETS.beep);
 
-  src.connect(gain);
-  gain.connect(audioCtx.destination);
-
-  src.start(0);
-  return true;
+  typeBufs = [];
+  for(const t of ASSETS.type){
+    typeBufs.push(await decodeMp3(t));
+  }
 }
 
-// Guaranteed audible test beep even if MP3 fails
-function playOscBeep(){
-  if(!audioEnabled || !audioCtx) return;
-  try{
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = "square";
-    o.frequency.value = 880;
-    g.gain.value = 0.0001;
+function startHum(){
+  if(!audioEnabled || !humBuf || !audioCtx) return;
+  stopHum();
 
-    o.connect(g);
-    g.connect(audioCtx.destination);
+  humSource = audioCtx.createBufferSource();
+  humSource.buffer = humBuf;
+  humSource.loop = true;
 
-    const t = audioCtx.currentTime;
-    g.gain.setValueAtTime(0.0001, t);
-    g.gain.exponentialRampToValueAtTime(0.12, t + 0.01);
-    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.08);
-
-    o.start(t);
-    o.stop(t + 0.09);
-  }catch(e){}
+  humSource.connect(humGain);
+  humSource.start(0);
 }
 
 function stopHum(){
   try{
-    if(hum){
-      hum.pause();
-      hum.currentTime = 0;
+    if(humSource){
+      humSource.stop(0);
+      humSource.disconnect();
+      humSource = null;
     }
   }catch(e){}
 }
 
-async function startHum(){
-  if(!hum) return;
-  hum.volume = 0.22;
+function playBuffer(buf, { volume = 0.25, rate = 1.0 } = {}){
+  if(!audioEnabled || !audioCtx || !buf) return;
 
-  // iOS may reject; that's okay — SFX still work via WebAudio
-  try{
-    await hum.play();
-  }catch(e){}
+  const src = audioCtx.createBufferSource();
+  src.buffer = buf;
+  src.playbackRate.value = rate;
+
+  const g = audioCtx.createGain();
+  g.gain.value = volume;
+
+  src.connect(g);
+  g.connect(sfxGain);
+
+  src.start(0);
 }
 
-// Toggle that always updates UI button labels
+function playBeep(){
+  if(!beepBuf) return;
+  playBuffer(beepBuf, { volume: 0.22, rate: 1.0 });
+}
+
+function playType(){
+  if(!typeBufs.length) return;
+
+  const now = performance.now();
+  if(now - lastTypeAt < TYPE_THROTTLE_MS) return;
+  lastTypeAt = now;
+
+  // pick a different clip than last time if possible
+  let idx = Math.floor(Math.random() * typeBufs.length);
+  if(typeBufs.length > 1 && idx === lastTypeIndex){
+    idx = (idx + 1) % typeBufs.length;
+  }
+  lastTypeIndex = idx;
+
+  const rate = 0.95 + Math.random() * 0.12;
+  const vol  = 0.11 + Math.random() * 0.10;
+  playBuffer(typeBufs[idx], { volume: vol, rate });
+}
+
 async function enableAudio(){
-  audioEnabled = true;
-  await ensureAudioContext();
-
-  // Load SFX buffers (if this fails, we still do oscillator beep)
+  // Must be called from user gesture (tap)
   try{
-    await loadAudioBuffers();
+    await ensureAudio();
+    await loadAllAudio();
+
+    audioEnabled = true;
+    startHum();
+    playBeep();
+
+    setStatus("Audio enabled.");
   }catch(e){
-    // Not fatal
-    console.log("Buffer load failed:", e);
+    audioEnabled = false;
+    stopHum();
+    setStatus("Audio failed — check /assets file names and refresh.");
+    console.log(e);
   }
 
-  await startHum();
-
-  // Confirm with a beep
-  if(!playBuffer(beepBuf, { volume: 0.22, rate: 1.0 })){
-    playOscBeep();
-  }
-
-  setStatus("Audio enabled.");
-  updateAllAudioButtons();
+  updateAudioButtons();
 }
 
 function disableAudio(){
   audioEnabled = false;
   stopHum();
   setStatus("Audio disabled.");
-  updateAllAudioButtons();
+  updateAudioButtons();
 }
 
 async function toggleAudio(){
-  // IMPORTANT: must be called from a user gesture (tap/click)
   if(audioEnabled) disableAudio();
   else await enableAudio();
 }
 
-// Auto-unlock ability: first tap anywhere can enable audio if you want.
-// We won't force-enable; we only “prep” the context.
+// Optional: prepare the context on first interaction (doesn’t start audio)
 document.addEventListener("touchstart", () => {
-  // Create/resume context early (does not start sound)
-  ensureAudioContext();
+  ensureAudio();
 }, { once:true, passive:true });
+/* ===== FEATURE: WEB AUDIO ENGINE END ===== */
 
-/* ===== FEATURE: AUDIO ENGINE (iPAD PROOF) END ===== */
 
+/* ===== FEATURE: UI AUDIO BUTTON START ===== */
+function audioButtonHtml(){
+  return `<button class="small" data-audio-toggle>${audioLabel()}</button>`;
+}
 
-/* ===== FEATURE: SFX HOOKS START ===== */
+function updateAudioButtons(){
+  document.querySelectorAll("[data-audio-toggle]").forEach(btn => {
+    btn.textContent = audioLabel();
+  });
+}
+
 function wireAudioButton(root = document){
-  const btns = root.querySelectorAll("[data-audio-toggle]");
-  btns.forEach(btn => {
-    // Use pointerdown for iPad reliability
+  root.querySelectorAll("[data-audio-toggle]").forEach(btn => {
+    // pointerdown is best on iPad for gesture recognition
     btn.addEventListener("pointerdown", async (e) => {
       e.preventDefault();
       await toggleAudio();
     });
   });
 }
+/* ===== FEATURE: UI AUDIO BUTTON END ===== */
 
-function updateAllAudioButtons(){
-  document.querySelectorAll("[data-audio-toggle]").forEach(btn => {
-    btn.textContent = getAudioLabel();
-  });
-}
 
-function playBeep(){
-  if(!audioEnabled) return;
-  if(!playBuffer(beepBuf, { volume: 0.22, rate: 1.0 })) playOscBeep();
-}
-
-function playType(){
-  if(!audioEnabled) return;
-
-  const now = performance.now();
-  if(now - lastTypeAt < TYPE_THROTTLE_MS) return;
-  lastTypeAt = now;
-
-  if(typeBufs && typeBufs.length){
-    const idx = Math.floor(Math.random() * typeBufs.length);
-    const rate = 0.95 + Math.random() * 0.12;
-    const vol = 0.12 + Math.random() * 0.10;
-    playBuffer(typeBufs[idx], { volume: vol, rate });
-  }else{
-    // If mp3 buffers didn't load, at least a tiny tick
-    playOscBeep();
-  }
-}
-
+/* ===== FEATURE: BUTTON GLOW + SFX START ===== */
 function wireButtonSfx(root = document){
-  root.querySelectorAll("button").forEach(btn => {
-    // Don’t beep on the audio toggle itself? (optional—comment out if you want beeps there too)
-    const isAudio = btn.hasAttribute("data-audio-toggle");
+  const buttons = root.querySelectorAll("button");
+
+  buttons.forEach(btn => {
+    const isAudioToggle = btn.hasAttribute("data-audio-toggle");
 
     btn.addEventListener("mouseenter", () => {
       btn.classList.add("glow");
-      if(!isAudio) playBeep();
+      if(audioEnabled && !isAudioToggle) playBeep();
     });
     btn.addEventListener("mouseleave", () => btn.classList.remove("glow"));
 
     btn.addEventListener("touchstart", () => {
       btn.classList.add("glow");
-      if(!isAudio) playBeep();
+      if(audioEnabled && !isAudioToggle) playBeep();
     }, { passive:true });
     btn.addEventListener("touchend", () => btn.classList.remove("glow"));
   });
 }
+/* ===== FEATURE: BUTTON GLOW + SFX END ===== */
 
+
+/* ===== FEATURE: TYPING SFX START ===== */
 function wireTypingSfx(root = document){
-  root.querySelectorAll("input").forEach(inp => {
-    inp.addEventListener("keydown", () => playType());
-    inp.addEventListener("input", () => playType());
-    inp.addEventListener("change", () => playType());
+  const inputs = root.querySelectorAll("input");
+  inputs.forEach(inp => {
+    inp.addEventListener("keydown", () => { if(audioEnabled) playType(); });
+    inp.addEventListener("input", () => { if(audioEnabled) playType(); });
+    inp.addEventListener("change", () => { if(audioEnabled) playType(); });
   });
 }
-/* ===== FEATURE: SFX HOOKS END ===== */
+/* ===== FEATURE: TYPING SFX END ===== */
 
 
-/* ===== FEATURE: RENDER SCREENS START ===== */
+/* ===== FEATURE: HELPERS START ===== */
 function escapeHtml(str){
   return String(str)
     .replaceAll("&","&amp;")
@@ -313,16 +319,15 @@ function escapeHtml(str){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
+/* ===== FEATURE: HELPERS END ===== */
 
+
+/* ===== FEATURE: RENDER SCREENS START ===== */
 function render(){
   if(state.stage === "boot") return renderBoot();
   if(state.stage === "login") return renderLogin();
   if(state.stage === "riddles") return renderRiddles();
   if(state.stage === "success") return renderSuccess();
-}
-
-function audioButtonHtml(){
-  return `<button class="small" data-audio-toggle>${getAudioLabel()}</button>`;
 }
 
 function renderBoot(){
@@ -339,7 +344,7 @@ function renderBoot(){
     </div>
     <hr/>
     <div class="faint small">
-      NOTICE: Audio requires a tap to enable on iPad Safari.
+      NOTICE: On iPad Safari, tap AUDIO once to enable sound.
     </div>
   `;
 
@@ -358,7 +363,7 @@ function renderBoot(){
 
   wireAudioButton(screen);
   wireButtonSfx(screen);
-  updateAllAudioButtons();
+  updateAudioButtons();
 }
 
 function renderLogin(){
@@ -370,12 +375,21 @@ function renderLogin(){
     <hr/>
 
     <label>NAME (as printed on identification)</label>
-    <input id="nameInput" autocomplete="off" autocapitalize="words"
-      placeholder="(refer to issued identification)" value="${escapeHtml(state.name)}" />
+    <input id="nameInput"
+      autocomplete="off"
+      autocapitalize="words"
+      placeholder="(refer to issued identification)"
+      value="${escapeHtml(state.name)}"
+    />
 
     <label style="margin-top:14px;">ACCESS CODE</label>
-    <input id="codeInput" autocomplete="off" inputmode="text" autocapitalize="characters"
-      placeholder="___-___-__" value="" />
+    <input id="codeInput"
+      autocomplete="off"
+      inputmode="text"
+      autocapitalize="characters"
+      placeholder="___-___-__"
+      value=""
+    />
 
     <div class="faint small" style="margin-top:10px;">
       Access code is printed on issued identification.
@@ -384,12 +398,7 @@ function renderLogin(){
     <div class="row" style="margin-top:14px;">
       <button id="loginBtn">LOGIN</button>
       ${audioButtonHtml()}
-      <button id="resetBtn" class="small">RESET</button>
-    </div>
-
-    <hr/>
-    <div class="faint small">
-      Tip: If audio is OFF, tap the AUDIO button once.
+      <button id="backBtn" class="small">BACK</button>
     </div>
   `;
 
@@ -401,7 +410,7 @@ function renderLogin(){
     const code = (codeInput.value || "").trim();
 
     state.name = name;
-    state.code = ""; // never store code
+    state.code = ""; // never store access code
 
     if(!name){
       setStatus("ERROR: Name field empty. Provide identification.");
@@ -412,7 +421,7 @@ function renderLogin(){
       return;
     }
 
-    playBeep();
+    if(audioEnabled) playBeep();
     setStatus("ACCESS GRANTED: Loading riddle protocol…");
     state.stage = "riddles";
     state.riddleIndex = 0;
@@ -420,17 +429,16 @@ function renderLogin(){
     render();
   });
 
-  document.getElementById("resetBtn").addEventListener("click", () => {
-    resetState();
-    state = { stage:"boot", name:"", code:"", riddleIndex:0 };
-    disableAudio();
+  document.getElementById("backBtn").addEventListener("click", () => {
+    state.stage = "boot";
+    saveState(state);
     render();
   });
 
   wireAudioButton(screen);
   wireTypingSfx(screen);
   wireButtonSfx(screen);
-  updateAllAudioButtons();
+  updateAudioButtons();
 }
 
 function renderRiddles(){
@@ -480,7 +488,7 @@ function renderRiddles(){
       return;
     }
 
-    playBeep();
+    if(audioEnabled) playBeep();
 
     if(i < total - 1){
       state.riddleIndex += 1;
@@ -508,7 +516,7 @@ function renderRiddles(){
   wireAudioButton(screen);
   wireTypingSfx(screen);
   wireButtonSfx(screen);
-  updateAllAudioButtons();
+  updateAudioButtons();
 }
 
 function renderSuccess(){
@@ -518,6 +526,7 @@ function renderSuccess(){
     <h2>VERIFICATION COMPLETE</h2>
     <div class="dim">Vault-Tec Industries — Access Granted</div>
     <hr/>
+
     <div class="dim">BRIEFCASE UNLOCK CODE</div>
     <div style="margin-top:10px;">
       <span class="codebox">${CONFIG.BRIEFCASE_CODE}</span>
@@ -543,7 +552,7 @@ function renderSuccess(){
 
   wireAudioButton(screen);
   wireButtonSfx(screen);
-  updateAllAudioButtons();
+  updateAudioButtons();
 }
 /* ===== FEATURE: RENDER SCREENS END ===== */
 
