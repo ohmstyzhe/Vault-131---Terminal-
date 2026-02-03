@@ -1,6 +1,6 @@
 /* =========================================================
    VAULT 131 TERMINAL — single page app
-   Audio rewrite: WebAudio-only (iPad Safari reliable)
+   WebAudio-only (iPad Safari reliable) + DIAGNOSTICS
    ========================================================= */
 
 /* ===== FEATURE: CONFIG START ===== */
@@ -40,10 +40,7 @@ const statusText = document.getElementById("statusText");
 
 
 /* ===== FEATURE: STATE (SAVED) START ===== */
-const STORAGE_KEY = "vault131_state_v4";
-/*
-  Important: we NEVER store the access code (don’t spoil it).
-*/
+const STORAGE_KEY = "vault131_state_v5";
 function loadState(){
   try{
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -52,20 +49,14 @@ function loadState(){
 }
 function saveState(s){
   try{
-    const safe = { ...s, code: "" };
+    const safe = { ...s, code: "" }; // never store access code
     localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
   }catch(e){}
 }
 function resetState(){
   try{ localStorage.removeItem(STORAGE_KEY); }catch(e){}
 }
-
-let state = loadState() || {
-  stage: "boot", // boot | login | riddles | success
-  name: "",
-  code: "",      // never persisted
-  riddleIndex: 0
-};
+let state = loadState() || { stage:"boot", name:"", code:"", riddleIndex:0 };
 /* ===== FEATURE: STATE (SAVED) END ===== */
 
 
@@ -76,7 +67,7 @@ function setStatus(text){
 /* ===== FEATURE: STATUS END ===== */
 
 
-/* ===== FEATURE: WEB AUDIO ENGINE START ===== */
+/* ===== FEATURE: AUDIO (WEB AUDIO) START ===== */
 let audioEnabled = false;
 let audioCtx = null;
 
@@ -110,15 +101,15 @@ async function ensureAudio(){
   if(audioCtx.state === "suspended"){
     await audioCtx.resume().catch(()=>{});
   }
-  // Create gains once
+
   if(!humGain){
     humGain = audioCtx.createGain();
-    humGain.gain.value = 0.18;
+    humGain.gain.value = 0.30; // <-- louder hum
     humGain.connect(audioCtx.destination);
   }
   if(!sfxGain){
     sfxGain = audioCtx.createGain();
-    sfxGain.gain.value = 0.9;
+    sfxGain.gain.value = 0.85;
     sfxGain.connect(audioCtx.destination);
   }
 }
@@ -140,7 +131,6 @@ async function loadAllAudio(){
   // Load once
   if(humBuf && beepBuf && typeBufs.length === 3) return;
 
-  // Any failure here means paths/filenames are wrong or cached deploy
   humBuf = await decodeMp3(ASSETS.hum);
   beepBuf = await decodeMp3(ASSETS.beep);
 
@@ -148,6 +138,16 @@ async function loadAllAudio(){
   for(const t of ASSETS.type){
     typeBufs.push(await decodeMp3(t));
   }
+}
+
+function stopHum(){
+  try{
+    if(humSource){
+      humSource.stop(0);
+      humSource.disconnect();
+      humSource = null;
+    }
+  }catch(e){}
 }
 
 function startHum(){
@@ -162,17 +162,8 @@ function startHum(){
   humSource.start(0);
 }
 
-function stopHum(){
-  try{
-    if(humSource){
-      humSource.stop(0);
-      humSource.disconnect();
-      humSource = null;
-    }
-  }catch(e){}
-}
-
-function playBuffer(buf, { volume = 0.25, rate = 1.0 } = {}){
+// Smooth envelope so the beep isn’t harsh
+function playBufferWithEnvelope(buf, { volume = 0.18, rate = 1.0, dur = 0.12 } = {}){
   if(!audioEnabled || !audioCtx || !buf) return;
 
   const src = audioCtx.createBufferSource();
@@ -180,17 +171,27 @@ function playBuffer(buf, { volume = 0.25, rate = 1.0 } = {}){
   src.playbackRate.value = rate;
 
   const g = audioCtx.createGain();
-  g.gain.value = volume;
+  g.gain.value = 0.0001;
 
   src.connect(g);
   g.connect(sfxGain);
 
-  src.start(0);
+  const t = audioCtx.currentTime;
+  const peak = Math.max(0.0001, volume);
+
+  // quick attack, smooth decay
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.linearRampToValueAtTime(peak, t + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+  src.start(t);
+  src.stop(t + dur + 0.02);
 }
 
 function playBeep(){
   if(!beepBuf) return;
-  playBuffer(beepBuf, { volume: 0.22, rate: 1.0 });
+  // softer + shorter
+  playBufferWithEnvelope(beepBuf, { volume: 0.12, rate: 1.0, dur: 0.10 });
 }
 
 function playType(){
@@ -200,7 +201,6 @@ function playType(){
   if(now - lastTypeAt < TYPE_THROTTLE_MS) return;
   lastTypeAt = now;
 
-  // pick a different clip than last time if possible
   let idx = Math.floor(Math.random() * typeBufs.length);
   if(typeBufs.length > 1 && idx === lastTypeIndex){
     idx = (idx + 1) % typeBufs.length;
@@ -208,12 +208,11 @@ function playType(){
   lastTypeIndex = idx;
 
   const rate = 0.95 + Math.random() * 0.12;
-  const vol  = 0.11 + Math.random() * 0.10;
-  playBuffer(typeBufs[idx], { volume: vol, rate });
+  const vol  = 0.08 + Math.random() * 0.06;
+  playBufferWithEnvelope(typeBufs[idx], { volume: vol, rate, dur: 0.07 });
 }
 
 async function enableAudio(){
-  // Must be called from user gesture (tap)
   try{
     await ensureAudio();
     await loadAllAudio();
@@ -222,11 +221,14 @@ async function enableAudio(){
     startHum();
     playBeep();
 
-    setStatus("Audio enabled.");
+    // DIAGNOSTICS in the status bar
+    setStatus(
+      `Audio ON ✅ | ctx:${audioCtx.state} | hum:${humBuf ? "OK" : "NO"} | beep:${beepBuf ? "OK" : "NO"} | type:${typeBufs.length}/3`
+    );
   }catch(e){
     audioEnabled = false;
     stopHum();
-    setStatus("Audio failed — check /assets file names and refresh.");
+    setStatus(`Audio FAILED ❌ (${String(e.message || e)})`);
     console.log(e);
   }
 
@@ -236,7 +238,7 @@ async function enableAudio(){
 function disableAudio(){
   audioEnabled = false;
   stopHum();
-  setStatus("Audio disabled.");
+  setStatus("Audio OFF.");
   updateAudioButtons();
 }
 
@@ -244,15 +246,10 @@ async function toggleAudio(){
   if(audioEnabled) disableAudio();
   else await enableAudio();
 }
-
-// Optional: prepare the context on first interaction (doesn’t start audio)
-document.addEventListener("touchstart", () => {
-  ensureAudio();
-}, { once:true, passive:true });
-/* ===== FEATURE: WEB AUDIO ENGINE END ===== */
+/* ===== FEATURE: AUDIO (WEB AUDIO) END ===== */
 
 
-/* ===== FEATURE: UI AUDIO BUTTON START ===== */
+/* ===== FEATURE: AUDIO BUTTON UI START ===== */
 function audioButtonHtml(){
   return `<button class="small" data-audio-toggle>${audioLabel()}</button>`;
 }
@@ -265,21 +262,18 @@ function updateAudioButtons(){
 
 function wireAudioButton(root = document){
   root.querySelectorAll("[data-audio-toggle]").forEach(btn => {
-    // pointerdown is best on iPad for gesture recognition
     btn.addEventListener("pointerdown", async (e) => {
       e.preventDefault();
       await toggleAudio();
     });
   });
 }
-/* ===== FEATURE: UI AUDIO BUTTON END ===== */
+/* ===== FEATURE: AUDIO BUTTON UI END ===== */
 
 
-/* ===== FEATURE: BUTTON GLOW + SFX START ===== */
+/* ===== FEATURE: SFX HOOKS START ===== */
 function wireButtonSfx(root = document){
-  const buttons = root.querySelectorAll("button");
-
-  buttons.forEach(btn => {
+  root.querySelectorAll("button").forEach(btn => {
     const isAudioToggle = btn.hasAttribute("data-audio-toggle");
 
     btn.addEventListener("mouseenter", () => {
@@ -295,19 +289,15 @@ function wireButtonSfx(root = document){
     btn.addEventListener("touchend", () => btn.classList.remove("glow"));
   });
 }
-/* ===== FEATURE: BUTTON GLOW + SFX END ===== */
 
-
-/* ===== FEATURE: TYPING SFX START ===== */
 function wireTypingSfx(root = document){
-  const inputs = root.querySelectorAll("input");
-  inputs.forEach(inp => {
+  root.querySelectorAll("input").forEach(inp => {
     inp.addEventListener("keydown", () => { if(audioEnabled) playType(); });
     inp.addEventListener("input", () => { if(audioEnabled) playType(); });
     inp.addEventListener("change", () => { if(audioEnabled) playType(); });
   });
 }
-/* ===== FEATURE: TYPING SFX END ===== */
+/* ===== FEATURE: SFX HOOKS END ===== */
 
 
 /* ===== FEATURE: HELPERS START ===== */
@@ -343,9 +333,7 @@ function renderBoot(){
       <button id="resetBtn" class="small">RESET SESSION</button>
     </div>
     <hr/>
-    <div class="faint small">
-      NOTICE: On iPad Safari, tap AUDIO once to enable sound.
-    </div>
+    <div class="faint small">NOTICE: Tap AUDIO once to enable sound on iPad Safari.</div>
   `;
 
   document.getElementById("continueBtn").addEventListener("click", () => {
@@ -375,21 +363,12 @@ function renderLogin(){
     <hr/>
 
     <label>NAME (as printed on identification)</label>
-    <input id="nameInput"
-      autocomplete="off"
-      autocapitalize="words"
-      placeholder="(refer to issued identification)"
-      value="${escapeHtml(state.name)}"
-    />
+    <input id="nameInput" autocomplete="off" autocapitalize="words"
+      placeholder="(refer to issued identification)" value="${escapeHtml(state.name)}" />
 
     <label style="margin-top:14px;">ACCESS CODE</label>
-    <input id="codeInput"
-      autocomplete="off"
-      inputmode="text"
-      autocapitalize="characters"
-      placeholder="___-___-__"
-      value=""
-    />
+    <input id="codeInput" autocomplete="off" inputmode="text" autocapitalize="characters"
+      placeholder="___-___-__" value="" />
 
     <div class="faint small" style="margin-top:10px;">
       Access code is printed on issued identification.
@@ -464,11 +443,6 @@ function renderRiddles(){
       ${audioButtonHtml()}
       <button id="resetBtn" class="small">RESET</button>
     </div>
-
-    <hr/>
-    <div class="faint small">
-      NOTE: Responses are not case-sensitive. Punctuation doesn’t matter much.
-    </div>
   `;
 
   const answerInput = document.getElementById("answerInput");
@@ -526,7 +500,6 @@ function renderSuccess(){
     <h2>VERIFICATION COMPLETE</h2>
     <div class="dim">Vault-Tec Industries — Access Granted</div>
     <hr/>
-
     <div class="dim">BRIEFCASE UNLOCK CODE</div>
     <div style="margin-top:10px;">
       <span class="codebox">${CONFIG.BRIEFCASE_CODE}</span>
