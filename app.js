@@ -108,11 +108,28 @@ function playBeep(){
   beep.play().catch(()=>{});
 }
 
+/* ===== FEATURE: ALTERNATING TYPE SOUND START ===== */
 function playType(){
-  if(!audioEnabled) return;
-  type.currentTime = 0;
-  type.play().catch(()=>{});
+  if(!audioEnabled || typeClips.length === 0) return;
+
+  // Pick a different clip than last time (when possible)
+  let idx = Math.floor(Math.random() * typeClips.length);
+  if(typeClips.length > 1 && idx === lastTypeIndex){
+    idx = (idx + 1) % typeClips.length;
+  }
+  lastTypeIndex = idx;
+
+  const a = typeClips[idx];
+
+  // Small human-ish variation
+  a.playbackRate = 0.92 + Math.random() * 0.22; // 0.92–1.14
+  a.volume = 0.18 + Math.random() * 0.10;       // 0.18–0.28
+
+  try { a.currentTime = 0; } catch(e) {}
+  a.play().catch(()=>{});
 }
+/* ===== FEATURE: ALTERNATING TYPE SOUND END ===== */
+
 /* ===== FEATURE: AUDIO CONTROL END ===== */
 
 
