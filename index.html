@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -32,21 +32,17 @@
   </main>
   <!-- ===== FEATURE: CRT WRAPPER END ===== -->
 
-<!-- ===== FEATURE: AUDIO ELEMENTS START (iPad Safari friendly) ===== -->
-<!-- Hum stays as an <audio> tag because it loops in the background -->
-<audio
-  id="hum"
-  src="assets/crt-hum.mp3"
-  preload="auto"
-  loop
-  playsinline
-></audio>
-
-<!-- NOTE:
-  Beep + typing are loaded by app.js using fetch() + AudioContext decoding.
-  So we do NOT need extra <audio> tags for those anymore.
--->
-<!-- ===== FEATURE: AUDIO ELEMENTS END ===== -->
+  <!-- ===== FEATURE: AUDIO NOTE START =====
+    No <audio> tags needed anymore.
+    Audio is handled by WebAudio in app.js (more reliable on iPad Safari).
+    Required assets:
+      assets/crt-hum.mp3
+      assets/ui-beep.mp3
+      assets/type1.mp3
+      assets/type2.mp3
+      assets/type3.mp3
+      assets/noise.png (for CRT noise overlay)
+  ===== FEATURE: AUDIO NOTE END ===== -->
 
   <script src="app.js"></script>
 </body>
