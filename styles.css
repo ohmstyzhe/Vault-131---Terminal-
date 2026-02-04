@@ -111,12 +111,14 @@ body{
 
 /* Main area */
 .screen{
-  position:relative;
-  height: calc(100% - 108px);
+  flex: 1;
+  min-height: 0; /* important for iPad Safari */
+  position: relative;
   padding: 10px 18px 16px 18px;
   color: var(--p);
   font-size: 18px;
   line-height: 1.35;
+}
 
   /* phosphor glow + sharp sparkle */
   text-shadow:
