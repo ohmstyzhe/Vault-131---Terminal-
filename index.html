@@ -5,130 +5,158 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>VAULT 131 DATABASE</title>
 
-  <!-- ===== FEATURE: STYLESHEET LINK START ===== -->
   <link rel="stylesheet" href="./styles.css" />
-  <!-- ===== FEATURE: STYLESHEET LINK END ===== -->
 </head>
 
 <body>
-  
-  <!-- ===== BOOT / LOADING OVERLAY START ===== -->
-<div class="boot" id="boot" aria-hidden="true">
-  <div class="boot__inner">
-    <div class="boot__title">VAULT-TEC INDUSTRIES</div>
-    <div class="boot__sub">TERMINAL INITIALIZATION SEQUENCE</div>
+  <!-- ===== CRT BLOOM FILTER (Safari) ===== -->
+  <svg width="0" height="0" style="position:absolute">
+    <filter id="crtBloom" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="blur1"/>
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6.5" result="blur2"/>
 
-    <div class="boot__bar">
-      <div class="boot__fill" id="bootFill"></div>
-      <div class="boot__glow"></div>
-    </div>
+      <feColorMatrix in="blur2" type="matrix"
+        values="
+          0 0 0 0 0.00
+          0 1 0 0 0.15
+          0 0 0 0 0.00
+          0 0 0 1 0"
+        result="glowGreen"/>
 
-    <div class="boot__percent" id="bootPct">0%</div>
-    <div class="boot__lines" id="bootLines"></div>
-  </div>
-</div>
-<!-- ===== BOOT / LOADING OVERLAY END ===== -->
+      <feMerge>
+        <feMergeNode in="glowGreen"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </svg>
 
-<!-- ===== CRT BLOOM FILTER (Safari) ===== -->
-<svg width="0" height="0" style="position:absolute">
-  <filter id="crtBloom" x="-30%" y="-30%" width="160%" height="160%">
-    <!-- base blur for bloom -->
-    <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="blur1"/>
+  <!-- ===== FEATURE: CRT WRAPPER START ===== -->
+  <main class="crt" id="crt">
+    <div class="crt__outer" aria-hidden="true"></div>
 
-    <!-- stronger glow layer -->
-    <feGaussianBlur in="SourceGraphic" stdDeviation="6.5" result="blur2"/>
+    <section class="terminal" aria-live="polite">
 
-    <!-- tint the bloom green + boost intensity -->
-    <feColorMatrix in="blur2" type="matrix"
-      values="
-        0 0 0 0 0.00
-        0 1 0 0 0.15
-        0 0 0 0 0.00
-        0 0 0 1 0"
-      result="glowGreen"/>
+      <!-- CRT overlays (must exist) -->
+      <div class="crt__vignette" aria-hidden="true"></div>
+      <div class="crt__scanlines" aria-hidden="true"></div>
+      <div class="crt__mask" aria-hidden="true"></div>
+      <div class="crt__noise" aria-hidden="true"></div>
 
-    <!-- merge: sharp source + 2 bloom layers -->
-    <feMerge>
-      <feMergeNode in="glowGreen"/>
-      <feMergeNode in="blur1"/>
-      <feMergeNode in="SourceGraphic"/>
-    </feMerge>
-  </filter>
-</svg>
+      <!-- ===== BOOT / LOADING OVERLAY ===== -->
+      <div class="boot" id="boot" aria-hidden="true">
+        <div class="boot__frame">
+          <div class="boot__title">INITIALIZING VAULT-TEC TERMINAL</div>
 
-<!-- ===== FEATURE: CRT WRAPPER START ===== -->
-<main class="crt" id="crt">
+          <div class="boot__lines" id="bootLines"></div>
 
-  <!-- ===== OUTER GLASS / SHEEN ===== -->
-  <div class="crt__outer" aria-hidden="true"></div>
+          <div class="boot__bar" aria-hidden="true">
+            <div class="boot__fill" id="bootFill"></div>
+          </div>
 
-  <!-- ===== TERMINAL SCREEN ===== -->
-  <section class="terminal" aria-live="polite">
+          <div class="boot__pct" id="bootPct">0%</div>
+        </div>
+      </div>
+      <!-- ===== END BOOT ===== -->
 
-    <!-- ===== HEAVY CRT OVERLAYS (MUST EXIST) ===== -->
-    <div class="crt__vignette" aria-hidden="true"></div>
-    <div class="crt__scanlines" aria-hidden="true"></div>
-    <div class="crt__mask" aria-hidden="true"></div>
-    <div class="crt__noise" aria-hidden="true"></div>
+      <!-- ===== CONTENT (kept separate for bloom targeting) ===== -->
+      <div class="terminal__content">
+        <header class="topbar" role="banner" aria-label="Terminal header">
+          <div class="topbar__left">GCC(1)</div>
+          <div class="topbar__center">GNU</div>
+          <div class="topbar__right">GCC(1)</div>
+        </header>
 
-    <!-- NEW: TOP-LAYER FUZZY GRAIN (clean fix) -->
-    <div class="crt__fuzzy-grain" aria-hidden="true"></div>
+        <div class="screen" id="screen"></div>
 
-    <!-- ===== TOP BAR ===== -->
-    <header class="topbar" role="banner" aria-label="Terminal header">
-      <div class="topbar__left">GCC(1)</div>
-      <div class="topbar__center">GNU</div>
-      <div class="topbar__right">GCC(1)</div>
-    </header>
+        <footer class="statusbar" role="contentinfo" aria-label="Terminal status">
+          <span id="statusText">Initializing Vault-Tec terminal…</span>
+        </footer>
+      </div>
+      <!-- ===== END CONTENT ===== -->
 
-    <!-- ===== APP OUTPUT (your content) ===== -->
-    <div class="screen terminal__content" id="screen"></div>
+    </section>
+  </main>
+  <!-- ===== FEATURE: CRT WRAPPER END ===== -->
 
-    <!-- ===== STATUS BAR ===== -->
-    <footer class="statusbar" role="contentinfo" aria-label="Terminal status">
-      <span id="statusText">Initializing Vault-Tec terminal…</span>
-    </footer>
+  <script src="./app.js" defer></script>
 
-  </section>
-</main>
+  <!-- ===== Boot typing + progress ===== -->
+  <script>
+  (() => {
+    const boot = document.getElementById('boot');
+    const fill = document.getElementById('bootFill');
+    const pct  = document.getElementById('bootPct');
+    const linesEl = document.getElementById('bootLines');
 
-<!-- ===== APP SCRIPT ===== -->
-<script src="./app.js" defer></script>
+    const lines = [
+      "> establishing secure link...",
+      "> loading personnel database...",
+      "> calibrating phosphor grid...",
+      "> syncing audio subsystem...",
+      "> warming phosphor...",
+      "> verification complete."
+    ];
 
-<script>
-(() => {
-  const boot = document.getElementById('boot');
-  const fill = document.getElementById('bootFill');
-  const pct  = document.getElementById('bootPct');
+    // typing
+    let lineIndex = 0;
 
-  // makes it feel "real": slow -> fast -> slow
-  let p = 0;
-  const tick = () => {
-    const speed =
-      p < 25 ? 1.2 :
-      p < 70 ? 2.1 :
-      p < 90 ? 1.1 : 0.6;
+    const typeLine = (text) => {
+      const row = document.createElement('div');
+      row.className = 'boot__line';
+      linesEl.appendChild(row);
 
-    p = Math.min(100, p + speed + Math.random()*1.6);
-    const pp = Math.floor(p);
+      let i = 0;
+      const step = () => {
+        const chunk = (Math.random() < 0.12) ? 2 : 1;
+        i = Math.min(text.length, i + chunk);
+        row.textContent = text.slice(0, i);
 
-    fill.style.width = pp + '%';
-    pct.textContent = pp + '%';
+        if (i >= text.length) {
+          row.classList.add('done');
+          return;
+        }
+        setTimeout(step, 18 + Math.random() * 22);
+      };
+      step();
+    };
 
-    if (p >= 100) {
-      setTimeout(() => {
-        boot.classList.add('is-done');
-        setTimeout(() => boot.remove(), 650);
-      }, 220);
-      return;
-    }
+    const startTyping = () => {
+      typeLine(lines[lineIndex]);
+      lineIndex++;
+
+      if (lineIndex < lines.length) {
+        setTimeout(startTyping, 260 + Math.random() * 260);
+      }
+    };
+
+    // progress
+    let p = 0;
+    const tick = () => {
+      const speed =
+        p < 25 ? 1.1 :
+        p < 70 ? 2.0 :
+        p < 90 ? 1.0 : 0.55;
+
+      p = Math.min(100, p + speed + Math.random() * 1.4);
+      const pp = Math.floor(p);
+
+      fill.style.width = pp + '%';
+      pct.textContent = pp + '%';
+
+      if (p >= 100) {
+        setTimeout(() => {
+          boot.classList.add('is-done');
+          setTimeout(() => boot.remove(), 650);
+        }, 420);
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+
+    startTyping();
     requestAnimationFrame(tick);
-  };
-
-  // ensure your CRT loads first, then boot runs
-  requestAnimationFrame(tick);
-})();
-</script>
-
+  })();
+  </script>
 </body>
 </html>
