@@ -99,6 +99,19 @@ body{
   transform: translateZ(0);
 }
 
+/* screen must be allowed to grow inside the flex column */
+.screen{
+  flex: 1;
+  min-height: 0;          /* iOS Safari flex fix */
+  height: auto !important;/* override any calc height */
+}
+
+/* statusbar should NOT be absolute if you want it to not cover the screen */
+.statusbar{
+  position: relative !important;
+  margin-top: auto;       /* pushes it to bottom */
+}
+
 /* Top bar */
 .topbar{
   display:flex;
