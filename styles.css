@@ -192,6 +192,15 @@ body{
   drop-shadow(0 0 26px rgba(124,255,122,.14));
 }
 
+/* generic: anything that looks like a progress bar inside screen */
+.screen progress,
+.screen [role="progressbar"],
+.screen .loading,
+.screen .progress{
+  filter: url(#crtBloom);
+  text-shadow: 0 0 12px rgba(124,255,122,.35);
+}
+
 /* Headings / strong “burn” */
 .screen h1, .screen h2, .screen strong{
   color: var(--p);
@@ -401,14 +410,14 @@ button:hover{
    OVERLAYS — ABOVE content, crisp
    ============================== */
 .crt__vignette,
-.crt__roll,
 .crt__scanlines,
 .crt__mask,
-.crt__noise{
+.crt__noise,
+.crt__roll{
   position:absolute;
   inset:0;
   pointer-events:none;
-  z-index: 6;
+  z-index: 5;
 }
 
 /* vignette */
