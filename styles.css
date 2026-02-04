@@ -263,3 +263,128 @@ hr{
   flex-wrap:wrap;
   align-items:center;
 }
+
+/* =========================================================
+   CRT PATCH: DARKER BLACKS + BLOOM + DEFOCUS + AGGRESSIVE RGB
+   (iPad Safari-safe: no backdrop-filter, no heavy blend stacks)
+========================================================= */
+
+:root{
+  /* DARKER overall */
+  --crt-contrast: 1.28;
+  --crt-bright: 0.92;     /* lower = darker */
+  --crt-sat: 1.20;
+
+  /* Strength knobs */
+  --scan-opacity: .18;     /* scanlines should DARKEN, not fog */
+  --noise-opacity: .10;    /* keep noise low so it doesn't grey */
+  --triad-opacity: .40;    /* aggressive RGB mask */
+
+  /* bloom/defocus */
+  --bloom-a: .65;
+  --bloom-b: .35;
+  --defocus: 0.55px;       /* try 0.35px to 0.9px */
+}
+
+/* Make the terminal base darker (true blacks) */
+.terminal{
+  background:
+    radial-gradient(120% 90% at 50% 35%, rgba(124,255,122,.06) 0%, rgba(0,0,0,0) 60%),
+    linear-gradient(#000, #000);
+  box-shadow:
+    inset 0 0 90px rgba(0,0,0,.92),
+    inset 0 0 18px rgba(0,0,0,.85);
+}
+
+/* BLOOM + slight DEFOCUS — apply to content only */
+.topbar,
+.screen,
+.statusbar{
+  filter: blur(var(--defocus)) contrast(1.04);
+  transform: translateZ(0);
+}
+
+/* “Real” bloom: layered glow via text-shadow (cheap + effective) */
+.screen, .topbar, .statusbar{
+  text-shadow:
+    0 0 2px rgba(124,255,122,.55),
+    0 0 10px rgba(124,255,122,calc(.55 * var(--bloom-a))),
+    0 0 22px rgba(124,255,122,calc(.40 * var(--bloom-a))),
+    0 0 46px rgba(124,255,122,calc(.20 * var(--bloom-b))),
+    -1px 0 rgba(255,0,90,.12),
+    1px 0 rgba(0,140,255,.10);
+}
+
+/* Keep overlays from washing blacks out: remove “sheen fog” */
+.crt__sheen{ opacity: .10; }
+
+/* Scanlines should darken, not brighten */
+.crt__scanlines{
+  opacity: var(--scan-opacity);
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0,0,0,0) 0px,
+    rgba(0,0,0,0) 2px,
+    rgba(0,0,0,.90) 3px
+  );
+}
+
+/* Noise: use it lightly; too much noise = grey haze */
+.crt__noise{
+  opacity: var(--noise-opacity);
+  background-size: 120px 120px;
+}
+
+/* Vignette: stronger edge darkening to kill grey */
+.crt__vignette{
+  opacity: .95;
+  background:
+    radial-gradient(120% 100% at 50% 50%,
+      rgba(0,0,0,0) 28%,
+      rgba(0,0,0,.92) 100%),
+    radial-gradient(140% 120% at 50% 50%,
+      rgba(255,255,255,.03) 0%,
+      rgba(255,255,255,0) 55%);
+}
+
+/* AGGRESSIVE RGB MASK:
+   Important: use multiply-ish behavior WITHOUT mix-blend-mode.
+   We do that by making the mask darker (alpha) rather than “light fog”.
+*/
+.crt__mask{
+  opacity: var(--triad-opacity);
+  background:
+    /* vertical RGB triads */
+    repeating-linear-gradient(
+      to right,
+      rgba(255,0,0,.55) 0px,
+      rgba(255,0,0,.55) 1px,
+      rgba(0,255,0,.45) 1px,
+      rgba(0,255,0,.45) 2px,
+      rgba(0,120,255,.40) 2px,
+      rgba(0,120,255,.40) 3px,
+      rgba(0,0,0,.55) 3px,        /* black gap makes “pixels” pop */
+      rgba(0,0,0,.55) 4px
+    ),
+    /* slight horizontal grille */
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,.25) 0px,
+      rgba(0,0,0,.25) 1px,
+      rgba(0,0,0,0) 1px,
+      rgba(0,0,0,0) 3px
+    );
+  image-rendering: pixelated;
+  -webkit-image-rendering: pixelated;
+}
+
+/* Optional: a subtle “phosphor smear” without greying the whole screen */
+.screen::after{
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none;
+  background: radial-gradient(110% 70% at 50% 40%,
+    rgba(124,255,122,.05) 0%,
+    rgba(124,255,122,0) 55%);
+  opacity:.65;
+}
