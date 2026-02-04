@@ -4,64 +4,79 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>VAULT 131 DATABASE</title>
+
+  <!-- ===== FEATURE: STYLESHEET LINK START ===== -->
   <link rel="stylesheet" href="./styles.css" />
+  <!-- ===== FEATURE: STYLESHEET LINK END ===== -->
 </head>
 
 <body>
 
-  <!-- ===== CRT BLOOM FILTER (Safari) ===== -->
-  <svg width="0" height="0" style="position:absolute">
-    <filter id="crtBloom" x="-35%" y="-35%" width="170%" height="170%">
-      <!-- tight bloom -->
-      <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b1" />
-      <!-- wide bloom -->
-      <feGaussianBlur in="SourceGraphic" stdDeviation="5.8" result="b2" />
+<!-- ===== CRT BLOOM FILTER (Safari) ===== -->
+<svg width="0" height="0" style="position:absolute">
+  <filter id="crtBloom" x="-30%" y="-30%" width="160%" height="160%">
+    <!-- base blur for bloom -->
+    <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="blur1"/>
 
-      <!-- tint bloom green + boost -->
-      <feColorMatrix in="b2" type="matrix"
-        values="
-          0 0 0 0 0.00
-          0 1 0 0 0.15
-          0 0 0 0 0.00
-          0 0 0 1 0"
-        result="g" />
+    <!-- stronger glow layer -->
+    <feGaussianBlur in="SourceGraphic" stdDeviation="6.5" result="blur2"/>
 
-      <feMerge>
-        <feMergeNode in="g" />
-        <feMergeNode in="b1" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-  </svg>
+    <!-- tint the bloom green + boost intensity -->
+    <feColorMatrix in="blur2" type="matrix"
+      values="
+        0 0 0 0 0.00
+        0 1 0 0 0.15
+        0 0 0 0 0.00
+        0 0 0 1 0"
+      result="glowGreen"/>
 
-  <main class="crt" id="crt">
-    <section class="terminal" aria-live="polite">
+    <!-- merge: sharp source + 2 bloom layers -->
+    <feMerge>
+      <feMergeNode in="glowGreen"/>
+      <feMergeNode in="blur1"/>
+      <feMergeNode in="SourceGraphic"/>
+    </feMerge>
+  </filter>
+</svg>
 
-      <!-- OVERLAYS (crisp) -->
-      <div class="crt__vignette" aria-hidden="true"></div>
-      <div class="crt__scanlines" aria-hidden="true"></div>
-      <div class="crt__mask" aria-hidden="true"></div>
-      <div class="crt__noise" aria-hidden="true"></div>
+<!-- ===== FEATURE: CRT WRAPPER START ===== -->
+<main class="crt" id="crt">
 
-      <!-- CONTENT (flex layout so footer never overlaps screen) -->
-      <div class="terminal__content">
-        <header class="topbar" role="banner" aria-label="Terminal header">
-          <div class="topbar__left bloom">GCC(1)</div>
-          <div class="topbar__center bloom">GNU</div>
-          <div class="topbar__right bloom">GCC(1)</div>
-        </header>
+  <!-- ===== OUTER GLASS / SHEEN ===== -->
+  <div class="crt__outer" aria-hidden="true"></div>
 
-        <!-- app.js renders screens in here -->
-        <div class="screen" id="screen"></div>
+  <!-- ===== TERMINAL SCREEN ===== -->
+  <section class="terminal" aria-live="polite">
 
-        <footer class="statusbar" role="contentinfo" aria-label="Terminal status">
-          <span id="statusText">Initializing Vault-Tec terminal…</span>
-        </footer>
-      </div>
+    <!-- ===== HEAVY CRT OVERLAYS (MUST EXIST) ===== -->
+    <div class="crt__vignette" aria-hidden="true"></div>
+    <div class="crt__scanlines" aria-hidden="true"></div>
+    <div class="crt__mask" aria-hidden="true"></div>
+    <div class="crt__noise" aria-hidden="true"></div>
 
-    </section>
-  </main>
+    <!-- NEW: TOP-LAYER FUZZY GRAIN (clean fix) -->
+    <div class="crt__fuzzy-grain" aria-hidden="true"></div>
 
-  <script src="./app.js" defer></script>
+    <!-- ===== TOP BAR ===== -->
+    <header class="topbar" role="banner" aria-label="Terminal header">
+      <div class="topbar__left">GCC(1)</div>
+      <div class="topbar__center">GNU</div>
+      <div class="topbar__right">GCC(1)</div>
+    </header>
+
+    <!-- ===== APP OUTPUT (your content) ===== -->
+    <div class="screen terminal__content" id="screen"></div>
+
+    <!-- ===== STATUS BAR ===== -->
+    <footer class="statusbar" role="contentinfo" aria-label="Terminal status">
+      <span id="statusText">Initializing Vault-Tec terminal…</span>
+    </footer>
+
+  </section>
+</main>
+
+<!-- ===== APP SCRIPT ===== -->
+<script src="./app.js" defer></script>
+
 </body>
-</html> 
+</html>
