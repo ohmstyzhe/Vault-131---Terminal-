@@ -67,6 +67,8 @@ body{
   box-shadow: inset 0 0 100px rgba(0,0,0,.95);
 
   animation: crtFlicker 4.6s infinite;
+  
+  filter: saturate(.88) brightness(.96);
 }
 
 /* Glass sheen */
@@ -135,7 +137,11 @@ body{
     0 0 44px var(--txt-glow-4);
 
   /* tiny tube softness (not full blur) */
-  filter: blur(.22px) contrast(1.14) saturate(1.12);
+  filter:
+  blur(.28px)
+  contrast(1.12)
+  saturate(1.12)
+  drop-shadow(0 0 6px rgba(124,255,122,.18));
 }
 
 /* Headings / strong “burn” */
@@ -232,6 +238,7 @@ button:hover{
 /* scanlines stay crisp (no blur/filter on this layer) */
 .crt__scanlines{
   opacity: var(--scan-opacity);
+  animation: scanWobble 0.08s steps(2,end) infinite;
   background:
     repeating-linear-gradient(
       to bottom,
@@ -372,4 +379,10 @@ input,
   50%  { background-position: 14px -14px, 0 0, 0 0; }
   75%  { background-position: 22px 8px, 0 0, 0 0; }
   100% { background-position: 0 0, 0 0, 0 0; }
+}
+
+@keyframes scanWobble{
+  0%   { transform: translateY(0); }
+  50%  { transform: translateY(.15px); }
+  100% { transform: translateY(0); }
 }
