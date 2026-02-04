@@ -287,3 +287,47 @@ button:hover{
   75%  { background-position: 22px 8px, 0 0, 0 0; }
   100% { background-position: 0 0, 0 0, 0 0; }
 }
+
+/* ---------- BLOOM TARGETING (iPad Safari friendly) ---------- */
+
+/* default: NO bloom on the whole content */
+.terminal__content { filter: none !important; }
+
+/* bloom the “hero” stuff */
+.topbar,
+.screen h1,
+.screen h2,
+button {
+  filter: url(#crtBloom);
+}
+
+/* keep small text crisp but still glowy */
+.screen,
+.statusbar,
+label,
+input,
+#statusText,
+.screen p,
+.screen small,
+.screen .dim,
+.screen .faint {
+  filter: none !important;
+  text-shadow:
+    0 0 10px rgba(124,255,99,.45),
+    0 0 18px rgba(124,255,99,.22),
+    0 0 2px rgba(124,255,99,.50);
+}
+
+/* keep borders/lines sharp (bloom on borders looks “double”) */
+input, button {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+/* optional: slightly boost headline glow without blurring body */
+.screen h1, .screen h2 {
+  text-shadow:
+    0 0 12px rgba(124,255,99,.55),
+    0 0 28px rgba(124,255,99,.25),
+    0 0 2px rgba(124,255,99,.65);
+}
