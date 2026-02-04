@@ -287,14 +287,21 @@ button:hover{
 .boot__fill{
   height: 100%;
   width: 0%;
+
+  /* START LIT so it’s visible from 0% */
   background: linear-gradient(to right,
-    rgba(124,255,122,.05),
-    rgba(124,255,122,.45),
-    rgba(124,255,122,.20)
+    rgba(124,255,122,.18),
+    rgba(124,255,122,.55),
+    rgba(124,255,122,.28)
   );
+
+  /* soft glow that grows with the bar */
   box-shadow:
-    0 0 18px rgba(124,255,122,.18),
-    0 0 40px rgba(124,255,122,.10);
+    0 0 10px rgba(124,255,122,.22),
+    0 0 26px rgba(124,255,122,.12);
+
+  filter: url(#crtBloom);
+  will-change: width;
 }
 
 .boot__pct{
