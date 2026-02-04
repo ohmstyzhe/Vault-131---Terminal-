@@ -1,37 +1,29 @@
-/* =========================================================
-   VAULT 131 — HEAVY CRT (iPad Safari friendly)
-   ========================================================= */
-
-/* ---- Core tuning knobs ---- */
 :root{
-  --crt-bg: #020302;
+  --crt-bg:#020302;
 
-  /* phosphor */
-  --p: #7CFF7A;
-  --p-dim: rgba(124,255,122,.62);
+  --p:#7CFF7A;
 
-  /* bloom + glow strength */
-  --glow-1: rgba(124,255,122,.55);
-  --glow-2: rgba(124,255,122,.25);
-  --glow-3: rgba(124,255,122,.12);
+  /* HARD knobs */
+  --noise-opacity:.32;   /* heavy grain */
+  --mask-opacity:.34;    /* aggressive RGB grille */
+  --scan-opacity:.52;    /* strong scanlines */
+  --vignette-strength:.92;
 
-  /* overlays */
-  --vignette: rgba(0,0,0,.86);
-  --scan-opacity: .42;
-  --noise-opacity: .22;   /* more = more grain */
-  --mask-opacity: .26;    /* more = more visible RGB grille */
+  /* glow / bloom */
+  --txt-glow-1: rgba(124,255,122,.75);
+  --txt-glow-2: rgba(124,255,122,.40);
+  --txt-glow-3: rgba(124,255,122,.22);
+  --txt-glow-4: rgba(124,255,122,.12);
 
-  /* subtle wobble */
-  --wobble: .55px;
+  --wobble:.55px;
 }
 
-/* ---- Reset ---- */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
+
 body{
   margin:0;
   background:#000;
-  color: var(--p);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -40,25 +32,25 @@ body{
   -webkit-font-smoothing: antialiased;
 }
 
-/* ---- Outer frame (your CRT shell) ---- */
+/* Outer shell */
 .crt{
   position:relative;
   width:min(980px, 94vw);
   height:min(680px, 90vh);
   padding:22px;
   border-radius:28px;
-  background: radial-gradient(120% 120% at 50% 40%, rgba(124,255,122,.05), rgba(0,0,0,.85) 60%, #000 100%);
+  background: radial-gradient(120% 120% at 50% 40%, rgba(124,255,122,.06), rgba(0,0,0,.90) 60%, #000 100%);
   box-shadow:
-    0 40px 120px rgba(0,0,0,.88),
+    0 40px 120px rgba(0,0,0,.90),
     inset 0 0 0 2px rgba(255,255,255,.04);
 }
 
-/* iPad safe-area */
+/* iPad safe area */
 @supports (padding: env(safe-area-inset-top)) {
   .crt { padding-top: calc(22px + env(safe-area-inset-top)); }
 }
 
-/* ---- The actual screen surface ---- */
+/* Screen */
 .terminal{
   position:relative;
   width:100%;
@@ -66,17 +58,17 @@ body{
   border-radius:18px;
   overflow:hidden;
 
-  /* DARKER base so it doesn't look "greyed out" */
+  /* make it DARKER: kill the grey wash */
   background:
-    radial-gradient(120% 95% at 50% 40%, rgba(124,255,122,.10) 0%, rgba(0,0,0,0) 55%),
-    radial-gradient(160% 120% at 50% 55%, rgba(0,0,0,.0) 0%, rgba(0,0,0,.65) 62%, rgba(0,0,0,.92) 100%),
+    radial-gradient(120% 95% at 50% 40%, rgba(124,255,122,.10) 0%, rgba(0,0,0,0) 56%),
+    radial-gradient(160% 120% at 50% 55%, rgba(0,0,0,0) 0%, rgba(0,0,0,.70) 60%, rgba(0,0,0,.94) 100%),
     linear-gradient(#020302, #000);
 
-  box-shadow:
-    inset 0 0 80px rgba(0,0,0,.92);
+  box-shadow: inset 0 0 90px rgba(0,0,0,.94);
+  animation: crtFlicker 4.6s infinite;
 }
 
-/* screen curvature + glass sheen */
+/* Curvature + glass sheen */
 .terminal::before{
   content:"";
   position:absolute; inset:-2%;
@@ -85,11 +77,21 @@ body{
     radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.05) 0%, rgba(255,255,255,0) 40%);
   pointer-events:none;
   mix-blend-mode: screen;
-  opacity:.38;
+  opacity:.42;
   transform: scale(1.02);
 }
 
-/* ---- Top bar ---- */
+/* CONTENT gets bloom filter */
+.terminal__content{
+  position:relative;
+  z-index: 1;
+
+  /* the actual bloom pipeline */
+  filter: url(#crtBloom) contrast(1.08) saturate(1.12);
+  transform: translateZ(0);
+}
+
+/* Top bar */
 .topbar{
   display:flex;
   align-items:center;
@@ -98,40 +100,44 @@ body{
   letter-spacing:.10em;
   user-select:none;
   color: var(--p);
-  text-shadow:
-    0 0 8px var(--glow-1),
-    0 0 18px var(--glow-2);
-  opacity:.92;
-}
-.topbar__center{ opacity:.85; }
 
-/* ---- Main text area ---- */
+  text-shadow:
+    0 0 4px var(--txt-glow-1),
+    0 0 12px var(--txt-glow-2),
+    0 0 26px var(--txt-glow-3);
+  opacity:.94;
+}
+.topbar__center{ opacity:.86; }
+
+/* Main area */
 .screen{
   position:relative;
   height: calc(100% - 108px);
   padding: 10px 18px 16px 18px;
-
   color: var(--p);
   font-size: 18px;
   line-height: 1.35;
 
-  /* Bloom / glow (stacked) */
+  /* phosphor glow + sharp sparkle */
   text-shadow:
-    0 0 3px rgba(124,255,122,.45),
-    0 0 10px rgba(124,255,122,.32),
-    0 0 22px rgba(124,255,122,.20);
+    0 0 1px rgba(255,255,255,.22),      /* sparkle */
+    0 0 3px var(--txt-glow-1),          /* tight glow */
+    0 0 12px var(--txt-glow-2),
+    0 0 26px var(--txt-glow-3),
+    0 0 44px var(--txt-glow-4);
 
-  /* Defocus (tiny blur) + contrast */
-  filter: contrast(1.12) saturate(1.12);
+  /* slight defocus like a real tube */
+  filter: blur(.28px) contrast(1.12) saturate(1.12);
 }
 
-/* Make headings pop like phosphor burn */
+/* Make titles “burn” */
 .screen h1, .screen h2, .screen strong{
   color: var(--p);
   text-shadow:
-    0 0 6px rgba(124,255,122,.60),
-    0 0 16px rgba(124,255,122,.30),
-    0 0 34px rgba(124,255,122,.14);
+    0 0 2px rgba(255,255,255,.22),
+    0 0 6px rgba(124,255,122,.80),
+    0 0 18px rgba(124,255,122,.38),
+    0 0 40px rgba(124,255,122,.16);
 }
 
 /* Status bar */
@@ -139,46 +145,38 @@ body{
   position:absolute;
   left:0; right:0; bottom:0;
   padding: 10px 14px;
-  background: rgba(124,255,122,.08);
+  background: rgba(124,255,122,.07);
   border-top: 1px solid rgba(124,255,122,.18);
   color: rgba(124,255,122,.95);
   text-shadow:
-    0 0 10px rgba(124,255,122,.32);
+    0 0 2px rgba(255,255,255,.18),
+    0 0 12px rgba(124,255,122,.34);
   font-size: 15px;
   user-select:none;
 }
 
-/* ---- Inputs/buttons keep your vibe ---- */
+/* Inputs/buttons */
 label{
   display:block;
   margin: 10px 0 6px 0;
-  color: var(--p-dim);
+  color: rgba(124,255,122,.65);
 }
-
 input{
-  width: min(520px, 100%);
-  padding: 12px 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(124,255,122,.22);
-  background: rgba(0,0,0,.55);
+  width:min(520px,100%);
+  padding:12px 12px;
+  border-radius:8px;
+  border:1px solid rgba(124,255,122,.22);
+  background: rgba(0,0,0,.56);
   color: var(--p);
   font: inherit;
   outline:none;
-
-  box-shadow:
-    inset 0 0 18px rgba(0,0,0,.78),
-    0 0 0 rgba(124,255,122,0);
-
-  text-shadow:
-    0 0 10px rgba(124,255,122,.18);
+  box-shadow: inset 0 0 18px rgba(0,0,0,.82);
+  text-shadow: 0 0 10px rgba(124,255,122,.18);
 }
 input:focus{
   border-color: rgba(124,255,122,.60);
-  box-shadow:
-    0 0 0 3px rgba(124,255,122,.10),
-    inset 0 0 18px rgba(0,0,0,.78);
+  box-shadow: 0 0 0 3px rgba(124,255,122,.10), inset 0 0 18px rgba(0,0,0,.82);
 }
-
 button{
   font: inherit;
   color: var(--p);
@@ -189,146 +187,103 @@ button{
   cursor:pointer;
   user-select:none;
   transition: transform .08s ease, box-shadow .2s ease, border-color .2s ease;
-
-  text-shadow:
-    0 0 8px rgba(124,255,122,.22);
+  text-shadow: 0 0 10px rgba(124,255,122,.20);
 }
 button:active{ transform: translateY(1px); }
 button:hover{
-  border-color: rgba(124,255,122,.70);
-  box-shadow:
-    0 0 18px rgba(124,255,122,.18),
-    0 0 40px rgba(124,255,122,.10);
+  border-color: rgba(124,255,122,.75);
+  box-shadow: 0 0 18px rgba(124,255,122,.18), 0 0 44px rgba(124,255,122,.10);
 }
 
-hr{
-  border:none;
-  border-top:1px solid rgba(124,255,122,.20);
-  margin:14px 0;
-}
-
-/* =========================================================
-   HEAVY CRT OVERLAYS (grain + scanlines + RGB grille + wobble)
-   IMPORTANT: these must sit INSIDE .terminal in the HTML
-   ========================================================= */
-
+/* ==============================
+   OVERLAYS — sit ABOVE content
+   ============================== */
 .crt__vignette,
 .crt__scanlines,
-.crt__noise,
-.crt__mask{
+.crt__mask,
+.crt__noise{
   position:absolute;
   inset:0;
   pointer-events:none;
+  z-index: 5;
 }
 
-/* Dark vignette + edge falloff */
 .crt__vignette{
   background:
     radial-gradient(120% 100% at 50% 50%,
-      rgba(0,0,0,0) 34%,
+      rgba(0,0,0,0) 32%,
       rgba(0,0,0,.70) 78%,
-      rgba(0,0,0,var(--vignette)) 100%);
-  opacity:.95;
+      rgba(0,0,0,1) 100%);
+  opacity: var(--vignette-strength);
   mix-blend-mode: multiply;
 }
 
-/* Real scanlines (thin + thick) */
+/* scanlines + a little banding */
 .crt__scanlines{
   opacity: var(--scan-opacity);
   background:
-    /* thin lines */
     repeating-linear-gradient(
       to bottom,
-      rgba(0,0,0,.00) 0px,
-      rgba(0,0,0,.00) 2px,
-      rgba(0,0,0,.26) 3px
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,.30) 3px
     ),
-    /* occasional thicker banding */
     repeating-linear-gradient(
       to bottom,
-      rgba(255,255,255,.00) 0px,
-      rgba(255,255,255,.00) 18px,
+      rgba(255,255,255,0) 0px,
+      rgba(255,255,255,0) 18px,
       rgba(0,0,0,.12) 19px
     );
   mix-blend-mode: multiply;
 }
 
-/* RGB mask / grille (this is the “see the pixels” part) */
+/* “see the pixels” RGB grille */
 .crt__mask{
   opacity: var(--mask-opacity);
   background:
-    /* vertical RGB stripes */
     repeating-linear-gradient(
       to right,
-      rgba(255,0,0,.28) 0px,
-      rgba(255,0,0,.28) 1px,
-      rgba(0,255,0,.22) 1px,
-      rgba(0,255,0,.22) 2px,
-      rgba(0,140,255,.22) 2px,
-      rgba(0,140,255,.22) 3px
+      rgba(255,0,0,.30) 0px,
+      rgba(255,0,0,.30) 1px,
+      rgba(0,255,0,.24) 1px,
+      rgba(0,255,0,.24) 2px,
+      rgba(0,140,255,.24) 2px,
+      rgba(0,140,255,.24) 3px
     ),
-    /* subtle dot triad breakup */
     radial-gradient(circle at 50% 50%, rgba(255,255,255,.12) 0 1px, rgba(255,255,255,0) 2px);
   background-size: 3px 100%, 4px 4px;
   mix-blend-mode: overlay;
-  filter: contrast(1.2) saturate(1.15);
+  filter: contrast(1.25) saturate(1.2);
 }
 
-/* Grain / noise (uses your assets/noise.png if present) */
+/* Heavy grain */
 .crt__noise{
   opacity: var(--noise-opacity);
   mix-blend-mode: overlay;
-
-  /* use image if available + add procedural grit */
   background-image:
     url("assets/noise.png"),
-    repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, rgba(0,0,0,0) 2px),
-    radial-gradient(circle at 30% 40%, rgba(255,255,255,.06), rgba(0,0,0,0) 55%);
-
+    radial-gradient(circle at 30% 40%, rgba(255,255,255,.08), rgba(0,0,0,0) 55%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,.03) 0 1px, rgba(0,0,0,0) 2px);
   background-size:
     220px 220px,
-    100% 6px,
-    100% 100%;
-
-  animation: noiseMove .35s steps(2,end) infinite;
+    100% 100%,
+    100% 6px;
+  animation: noiseMove .28s steps(2,end) infinite;
 }
 
-/* =========================================================
-   Bloom + defocus + chromatic fringing (Safari-friendly)
-   ========================================================= */
-
-/* Tiny defocus on the whole screen contents (not overlays) */
-.terminal > *:not(.crt__vignette):not(.crt__scanlines):not(.crt__noise):not(.crt__mask){
-  filter: blur(.22px) contrast(1.10) saturate(1.08);
-  transform: translateZ(0); /* helps iOS */
-}
-
-/* Chromatic edge split on text container */
-.screen{
-  text-shadow:
-    0 0 2px rgba(124,255,122,.55),
-    0 0 10px rgba(124,255,122,.28),
-    -0.9px 0 rgba(255,0,0,.14),
-     0.9px 0 rgba(0,160,255,.12);
-}
-
-/* Global flicker + micro wobble */
-.terminal{
-  animation: crtFlicker 4.8s infinite;
-}
-
+/* Flicker / wobble */
 @keyframes crtFlicker{
   0%,100% { filter: brightness(1.00) contrast(1.02); transform: translateY(0); }
-  48% { filter: brightness(1.02) contrast(1.06); }
-  50% { filter: brightness(.96) contrast(1.10); transform: translateY(var(--wobble)); }
-  52% { filter: brightness(1.01) contrast(1.06); transform: translateY(calc(var(--wobble) * -0.7)); }
-  70% { filter: brightness(1.00) contrast(1.05); }
+  48% { filter: brightness(1.03) contrast(1.06); }
+  50% { filter: brightness(.95) contrast(1.12); transform: translateY(var(--wobble)); }
+  52% { filter: brightness(1.02) contrast(1.07); transform: translateY(calc(var(--wobble) * -0.7)); }
+  70% { filter: brightness(1.00) contrast(1.06); }
 }
 
 @keyframes noiseMove{
   0%   { background-position: 0 0, 0 0, 0 0; }
-  25%  { background-position: -12px 8px, 0 0, 0 0; }
-  50%  { background-position: 10px -10px, 0 0, 0 0; }
-  75%  { background-position: 14px 6px, 0 0, 0 0; }
+  25%  { background-position: -18px 10px, 0 0, 0 0; }
+  50%  { background-position: 14px -14px, 0 0, 0 0; }
+  75%  { background-position: 22px 8px, 0 0, 0 0; }
   100% { background-position: 0 0, 0 0, 0 0; }
 }
