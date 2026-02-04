@@ -487,3 +487,11 @@ h1, h2{
 /* =========================================================
    ===== FEATURE: REAL CRT OVERRIDE END =====
    ========================================================= */
+  
+  /* ===== FEATURE: MICRO WOBBLE START ===== */
+@keyframes microWobble{
+  0%,100% { transform: perspective(900px) rotateX(.6deg) rotateY(-.6deg) translateY(0); }
+  50%     { transform: perspective(900px) rotateX(.6deg) rotateY(-.6deg) translateY(.4px); }
+}
+.terminal{ animation: microWobble 6.5s ease-in-out infinite; }
+/* ===== FEATURE: MICRO WOBBLE END ===== */
