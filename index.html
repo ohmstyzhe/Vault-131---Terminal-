@@ -5,88 +5,78 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>VAULT 131 DATABASE</title>
 
-  <!-- ===== FEATURE: STYLESHEET LINK START ===== -->
   <link rel="stylesheet" href="./styles.css" />
-  <!-- ===== FEATURE: STYLESHEET LINK END ===== -->
 </head>
 
 <body>
   <!-- ===== CRT BLOOM FILTER (Safari) ===== -->
-  <svg width="0" height="0" style="position:absolute">
+  <svg width="0" height="0" style="position:absolute; left:-9999px; top:-9999px;">
     <filter id="crtBloom" x="-30%" y="-30%" width="160%" height="160%">
-      <!-- base blur for bloom -->
-      <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="blur1"/>
+      <!-- keep source -->
+      <feColorMatrix in="SourceGraphic" type="matrix"
+        values="
+          1 0 0 0 0
+          0 1 0 0 0
+          0 0 1 0 0
+          0 0 0 1 0" result="src"/>
 
-      <!-- stronger glow layer -->
-      <feGaussianBlur in="SourceGraphic" stdDeviation="6.5" result="blur2"/>
+      <!-- bloom layers (small -> medium) -->
+      <feGaussianBlur in="src" stdDeviation="1.4" result="b1"/>
+      <feGaussianBlur in="src" stdDeviation="3.2" result="b2"/>
 
-      <!-- tint the bloom green + boost intensity -->
-      <feColorMatrix in="blur2" type="matrix"
+      <!-- tint + intensity (green) -->
+      <feColorMatrix in="b2" type="matrix"
         values="
           0 0 0 0 0.00
-          0 1 0 0 0.15
+          0 1 0 0 0.10
           0 0 0 0 0.00
-          0 0 0 1 0"
-        result="glowGreen"/>
+          0 0 0 0.85 0" result="g"/>
 
-      <!-- merge: glow + bloom + sharp source -->
-      <feMerge>
-        <feMergeNode in="glowGreen"/>
-        <feMergeNode in="blur1"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+      <!-- screen blend so it glows without greying everything out -->
+      <feBlend in="g" in2="b1" mode="screen" result="glow"/>
+      <feBlend in="src" in2="glow" mode="screen"/>
     </filter>
   </svg>
 
   <!-- ===== FEATURE: CRT WRAPPER START ===== -->
   <main class="crt" id="crt">
 
-    <!-- ===== FEATURE: OUTER GLASS / SHEEN START ===== -->
+    <!-- OUTER GLASS / SHEEN -->
     <div class="crt__outer" aria-hidden="true"></div>
-    <!-- ===== FEATURE: OUTER GLASS / SHEEN END ===== -->
 
-    <!-- ===== FEATURE: TERMINAL START ===== -->
+    <!-- TERMINAL -->
     <section class="terminal" aria-live="polite">
 
-      <!-- ✅ BLOOM TARGET: only the content goes in here -->
-      <div class="terminal__content">
-        <!-- ===== FEATURE: TOP BAR START ===== -->
+      <!-- CRT OVERLAYS (stay crisp, sit ABOVE content via CSS z-index) -->
+      <div class="crt__vignette" aria-hidden="true"></div>
+      <div class="crt__scanlines" aria-hidden="true"></div>
+      <div class="crt__mask" aria-hidden="true"></div>
+      <div class="crt__noise" aria-hidden="true"></div>
+
+      <!-- IMPORTANT: content wrapper (this is what we bloom / defocus) -->
+      <div class="terminal__content" id="terminalContent">
+
+        <!-- TOP BAR -->
         <header class="topbar" role="banner" aria-label="Terminal header">
           <div class="topbar__left">GCC(1)</div>
           <div class="topbar__center">GNU</div>
           <div class="topbar__right">GCC(1)</div>
         </header>
-        <!-- ===== FEATURE: TOP BAR END ===== -->
 
-        <!-- ===== FEATURE: APP OUTPUT START ===== -->
-        <!-- app.js renders the screens in here -->
+        <!-- APP OUTPUT -->
         <div class="screen" id="screen"></div>
-        <!-- ===== FEATURE: APP OUTPUT END ===== -->
 
-        <!-- ===== FEATURE: STATUS BAR START ===== -->
+        <!-- STATUS BAR -->
         <footer class="statusbar" role="contentinfo" aria-label="Terminal status">
           <span id="statusText">Initializing Vault-Tec terminal…</span>
         </footer>
-        <!-- ===== FEATURE: STATUS BAR END ===== -->
-      </div>
 
-      <!-- ✅ CRISP LAYERS: overlays go AFTER content so they sit on top -->
-      <!-- ===== FEATURE: HEAVY CRT OVERLAYS START ===== -->
-      <div class="crt__vignette" aria-hidden="true"></div>
-      <div class="crt__scanlines" aria-hidden="true"></div>
-      <div class="crt__mask" aria-hidden="true"></div>
-      <div class="crt__noise" aria-hidden="true"></div>
-      <!-- ===== FEATURE: HEAVY CRT OVERLAYS END ===== -->
+      </div><!-- /.terminal__content -->
 
     </section>
-    <!-- ===== FEATURE: TERMINAL END ===== -->
-
   </main>
   <!-- ===== FEATURE: CRT WRAPPER END ===== -->
 
-  <!-- ===== FEATURE: APP SCRIPT START ===== -->
-  <!-- IMPORTANT: defer ensures DOM exists before app.js runs -->
   <script src="./app.js" defer></script>
-  <!-- ===== FEATURE: APP SCRIPT END ===== -->
 </body>
 </html>
