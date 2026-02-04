@@ -12,72 +12,77 @@
 
 <body>
   <!-- ===== CRT BLOOM FILTER (Safari) ===== -->
-<svg width="0" height="0" style="position:absolute">
-  <filter id="crtBloom" x="-30%" y="-30%" width="160%" height="160%">
-    <!-- base blur for bloom -->
-    <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="blur1"/>
+  <svg width="0" height="0" style="position:absolute">
+    <filter id="crtBloom" x="-30%" y="-30%" width="160%" height="160%">
+      <!-- base blur for bloom -->
+      <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="blur1"/>
 
-    <!-- stronger glow layer -->
-    <feGaussianBlur in="SourceGraphic" stdDeviation="6.5" result="blur2"/>
+      <!-- stronger glow layer -->
+      <feGaussianBlur in="SourceGraphic" stdDeviation="6.5" result="blur2"/>
 
-    <!-- tint the bloom green + boost intensity -->
-    <feColorMatrix in="blur2" type="matrix"
-      values="
-        0 0 0 0 0.00
-        0 1 0 0 0.15
-        0 0 0 0 0.00
-        0 0 0 1 0"
-      result="glowGreen"/>
+      <!-- tint the bloom green + boost intensity -->
+      <feColorMatrix in="blur2" type="matrix"
+        values="
+          0 0 0 0 0.00
+          0 1 0 0 0.15
+          0 0 0 0 0.00
+          0 0 0 1 0"
+        result="glowGreen"/>
 
-    <!-- merge: sharp source + 2 bloom layers -->
-    <feMerge>
-      <feMergeNode in="glowGreen"/>
-      <feMergeNode in="blur1"/>
-      <feMergeNode in="SourceGraphic"/>
-    </feMerge>
-  </filter>
-</svg>
+      <!-- merge: glow + bloom + sharp source -->
+      <feMerge>
+        <feMergeNode in="glowGreen"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </svg>
+
   <!-- ===== FEATURE: CRT WRAPPER START ===== -->
   <main class="crt" id="crt">
+
     <!-- ===== FEATURE: OUTER GLASS / SHEEN START ===== -->
     <div class="crt__outer" aria-hidden="true"></div>
     <!-- ===== FEATURE: OUTER GLASS / SHEEN END ===== -->
 
     <!-- ===== FEATURE: TERMINAL START ===== -->
     <section class="terminal" aria-live="polite">
-      
+
+      <!-- ✅ BLOOM TARGET: only the content goes in here -->
+      <div class="terminal__content">
+        <!-- ===== FEATURE: TOP BAR START ===== -->
+        <header class="topbar" role="banner" aria-label="Terminal header">
+          <div class="topbar__left">GCC(1)</div>
+          <div class="topbar__center">GNU</div>
+          <div class="topbar__right">GCC(1)</div>
+        </header>
+        <!-- ===== FEATURE: TOP BAR END ===== -->
+
+        <!-- ===== FEATURE: APP OUTPUT START ===== -->
+        <!-- app.js renders the screens in here -->
+        <div class="screen" id="screen"></div>
+        <!-- ===== FEATURE: APP OUTPUT END ===== -->
+
+        <!-- ===== FEATURE: STATUS BAR START ===== -->
+        <footer class="statusbar" role="contentinfo" aria-label="Terminal status">
+          <span id="statusText">Initializing Vault-Tec terminal…</span>
+        </footer>
+        <!-- ===== FEATURE: STATUS BAR END ===== -->
+      </div>
+
+      <!-- ✅ CRISP LAYERS: overlays go AFTER content so they sit on top -->
       <!-- ===== FEATURE: HEAVY CRT OVERLAYS START ===== -->
-      <!-- IMPORTANT: These must exist for your CSS CRT layers to show -->
       <div class="crt__vignette" aria-hidden="true"></div>
       <div class="crt__scanlines" aria-hidden="true"></div>
-      <div class="crt__mask"></div>
+      <div class="crt__mask" aria-hidden="true"></div>
       <div class="crt__noise" aria-hidden="true"></div>
       <!-- ===== FEATURE: HEAVY CRT OVERLAYS END ===== -->
 
-      <!-- ===== FEATURE: TOP BAR START ===== -->
-      <header class="topbar" role="banner" aria-label="Terminal header">
-        <div class="topbar__left">GCC(1)</div>
-        <div class="topbar__center">GNU</div>
-        <div class="topbar__right">GCC(1)</div>
-      </header>
-      <!-- ===== FEATURE: TOP BAR END ===== -->
-
-      <!-- ===== FEATURE: APP OUTPUT START ===== -->
-      <!-- app.js renders the screens in here -->
-      <div class="screen" id="screen"></div>
-      <!-- ===== FEATURE: APP OUTPUT END ===== -->
-
-      <!-- ===== FEATURE: STATUS BAR START ===== -->
-      <footer class="statusbar" role="contentinfo" aria-label="Terminal status">
-        <span id="statusText">Initializing Vault-Tec terminal…</span>
-      </footer>
-      <!-- ===== FEATURE: STATUS BAR END ===== -->
-
     </section>
     <!-- ===== FEATURE: TERMINAL END ===== -->
+
   </main>
   <!-- ===== FEATURE: CRT WRAPPER END ===== -->
-
 
   <!-- ===== FEATURE: APP SCRIPT START ===== -->
   <!-- IMPORTANT: defer ensures DOM exists before app.js runs -->
