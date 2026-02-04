@@ -320,13 +320,13 @@ button:hover{
     180px 180px,
     3px 100%;
 
-  opacity: .22;          /* strength of fuzz */
+  opacity: .28;          /* strength of fuzz */
   mix-blend-mode: screen;
 
   filter:
-    contrast(1.3)
-    saturate(1.2)
-    blur(.35px);         /* this makes it look “fuzzy” instead of digital */
+    contrast(1.25)
+    saturate(1.05)
+    blur(.60px);         /* this makes it look “fuzzy” instead of digital */
 
   animation: fuzzyGrain 0.18s steps(2,end) infinite;
 }
