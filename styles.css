@@ -144,17 +144,11 @@ body{
 
 /* Status bar */
 .statusbar{
-  position:absolute;
-  left:0; right:0; bottom:0;
+  position: relative;
+  margin-top: auto; /* pushes it to bottom of flex column */
   padding: 10px 14px;
   background: rgba(124,255,122,.07);
   border-top: 1px solid rgba(124,255,122,.18);
-  color: rgba(124,255,122,.95);
-  text-shadow:
-    0 0 2px rgba(255,255,255,.18),
-    0 0 12px rgba(124,255,122,.34);
-  font-size: 15px;
-  user-select:none;
 }
 
 /* Inputs/buttons */
