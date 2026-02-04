@@ -495,3 +495,150 @@ h1, h2{
 }
 .terminal{ animation: microWobble 6.5s ease-in-out infinite; }
 /* ===== FEATURE: MICRO WOBBLE END ===== */
+
+/* =========================================================
+   ===== FEATURE: CRT OVERRIDE v2 (iPad SAFE) START =====
+   Paste at the VERY BOTTOM of styles.css
+   ========================================================= */
+
+/* 1) Stronger tube look: darker edges + center glow + glass */
+.terminal{
+  position: relative;
+  transform: perspective(1200px) rotateX(.8deg);
+  border-radius: 22px;
+  overflow: hidden;
+
+  /* “tube” shading + slight bloom */
+  box-shadow:
+    inset 0 0 80px rgba(0,0,0,.92),
+    inset 0 0 220px rgba(0,0,0,.55),
+    0 0 30px rgba(124,255,99,.08);
+}
+
+/* 2) Add a big CRT glass layer ON TOP */
+.terminal::after{
+  content:"";
+  position:absolute; inset:-2%;
+  pointer-events:none;
+  border-radius: 24px;
+  z-index: 80;
+
+  background:
+    /* glass sheen */
+    radial-gradient(120% 80% at 40% 18%,
+      rgba(255,255,255,.10) 0%,
+      rgba(255,255,255,.04) 18%,
+      rgba(255,255,255,0) 50%),
+    /* heavy vignette */
+    radial-gradient(120% 110% at 50% 50%,
+      rgba(0,0,0,0) 36%,
+      rgba(0,0,0,.55) 78%,
+      rgba(0,0,0,.92) 100%),
+    /* subtle haze */
+    linear-gradient(to bottom,
+      rgba(255,255,255,.02),
+      rgba(255,255,255,0) 40%,
+      rgba(0,0,0,.10) 100%);
+
+  opacity: .95;
+}
+
+/* 3) Make your CRT overlays actually sit on top */
+.crt__vignette,
+.crt__scanlines,
+.crt__noise{
+  position:absolute;
+  inset: 0;
+  border-radius: 22px;
+  pointer-events:none;
+  z-index: 70;
+}
+
+/* 4) HEAVY scanlines + rolling band */
+.crt__scanlines{
+  opacity: 1 !important;
+
+  background:
+    /* scanlines (stronger) */
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,.32) 3px,
+      rgba(0,0,0,0) 4px
+    ),
+    /* rolling bright band */
+    linear-gradient(
+      to bottom,
+      rgba(255,255,255,0) 0%,
+      rgba(255,255,255,.08) 45%,
+      rgba(255,255,255,0) 60%
+    );
+
+  animation: crtBand 6.2s linear infinite;
+}
+
+@keyframes crtBand{
+  0%   { background-position: 0 0, 0 -140%; }
+  100% { background-position: 0 0, 0 140%; }
+}
+
+/* 5) Phosphor subpixel mask (your close-up ref) */
+.screen{
+  position: relative;
+  z-index: 10;
+
+  /* BIG glow / bloom */
+  text-shadow:
+    0 0 2px rgba(124,255,99,.75),
+    0 0 14px rgba(124,255,99,.45),
+    0 0 32px rgba(124,255,99,.22);
+
+  /* slight chroma bleed */
+  filter: saturate(1.15) contrast(1.12) brightness(1.05);
+}
+
+.screen::before{
+  content:"";
+  position:absolute; inset:0;
+  pointer-events:none;
+  z-index: 60;
+
+  /* RGB triads */
+  background:
+    repeating-linear-gradient(
+      to right,
+      rgba(255,0,0,.10) 0px,
+      rgba(255,0,0,.10) 1px,
+      rgba(0,255,0,.08) 1px,
+      rgba(0,255,0,.08) 2px,
+      rgba(0,0,255,.06) 2px,
+      rgba(0,0,255,.06) 3px
+    );
+
+  opacity: .35;
+}
+
+/* 6) Noise/grain – make sure it’s visible */
+.crt__noise{
+  background-image: url("assets/noise.png");
+  background-size: 140px 140px;
+  opacity: .20 !important;
+  animation: noiseShift .45s steps(2,end) infinite;
+}
+
+/* 7) Slight flicker */
+.crt{
+  animation: flicker 4.6s infinite !important;
+}
+
+@keyframes flicker{
+  0%, 100% { filter: brightness(1) contrast(1.05); }
+  48% { filter: brightness(1.03) contrast(1.08); }
+  50% { filter: brightness(.98) contrast(1.12); }
+  52% { filter: brightness(1.02) contrast(1.08); }
+}
+
+/* =========================================================
+   ===== FEATURE: CRT OVERRIDE v2 (iPad SAFE) END =====
+   ========================================================= */
