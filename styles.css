@@ -1,33 +1,27 @@
 /* =========================================================
-   VAULT 131 — HEAVY CRT (iPad Safari friendly)
-   Replace your entire styles.css with this file.
-   Uses your existing HTML classes:
-   .crt, .terminal, .screen, .topbar, .statusbar,
-   .crt__vignette, .crt__scanlines, .crt__noise
-   ========================================================= */
+   VAULT 131 — HEAVY CRT (iPad Safari-friendly)
+   Goal: visible RGB triad / pixel mask + scanlines + grain
+   Avoid: backdrop-filter + heavy mix-blend-mode (Safari issues)
+========================================================= */
 
-/* ---------- VARIABLES ---------- */
 :root{
   --bg: #000;
+  --phosphor: #7CFF7A;
+  --phosphor-dim: rgba(124,255,122,.65);
 
-  --phosphor: #7CFF63;
-  --phosphor-dim: rgba(124,255,99,.62);
-  --phosphor-faint: rgba(124,255,99,.26);
+  /* CRT knobs */
+  --crt-contrast: 1.18;
+  --crt-bright: 1.05;
+  --crt-sat: 1.12;
 
-  --glass: rgba(255,255,255,.04);
-  --shadow: rgba(0,0,0,.92);
-
-  /* CRT tuning */
-  --bloom: 1;                 /* overall glow amount */
-  --blur: .35px;              /* soften pixels slightly */
-  --scan-opacity: .28;        /* horizontal scanlines strength */
-  --mask-opacity: .22;        /* RGB subpixel mask strength */
-  --grain-opacity: .18;       /* film/noise strength */
-  --vignette: .85;            /* edge darkening */
-  --flicker: .06;             /* flicker intensity */
+  --vignette: .70;          /* 0-1 */
+  --scan-opacity: .22;      /* scanlines */
+  --triad-opacity: .22;     /* RGB mask strength (this is the “pixels”) */
+  --noise-opacity: .14;     /* film grain */
+  --glow: .55;              /* text glow strength */
 }
 
-/* ---------- RESET / BASE ---------- */
+/* ===== Reset ===== */
 *{ box-sizing:border-box; }
 html,body{ height:100%; }
 body{
@@ -38,390 +32,234 @@ body{
   justify-content:center;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   overflow:hidden;
+  color: var(--phosphor);
 }
 
-/* ---------- CRT FRAME ---------- */
+/* ===== Main CRT shell ===== */
 .crt{
   position:relative;
   width:min(980px, 94vw);
   height:min(680px, 90vh);
-
-  background: #020402;
-  border-radius:28px;
   padding:22px;
-
+  border-radius:28px;
+  background:#020402;
   box-shadow:
     0 40px 120px rgba(0,0,0,.85),
-    inset 0 0 0 2px rgba(255,255,255,.05);
-
-  /* subtle overall flicker / brightness breathing */
-  animation: crtFlicker 5.6s infinite linear;
+    inset 0 0 0 2px rgba(255,255,255,.04);
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
-/* iPad notch safe-area */
+/* iPad safe-area */
 @supports (padding: env(safe-area-inset-top)) {
   .crt { padding-top: calc(22px + env(safe-area-inset-top)); }
 }
 
-/* This is the "glass" + curvature layer that sits over everything */
-.crt::before{
-  content:"";
-  position:absolute;
-  inset:22px;
-  border-radius:18px;
-  pointer-events:none;
-
-  /* screen curvature + specular sheen */
-  background:
-    radial-gradient(130% 110% at 50% 40%, rgba(255,255,255,.08) 0%, rgba(255,255,255,0) 55%),
-    radial-gradient(120% 110% at 50% 55%, rgba(124,255,99,.10) 0%, rgba(0,0,0,0) 62%),
-    radial-gradient(120% 120% at 50% 50%, rgba(0,0,0,0) 38%, rgba(0,0,0,.55) 100%);
-  opacity:.55;
-}
-
-/* RGB subpixel mask (the “you can see pixels” vibe) */
-.crt::after{
-  content:"";
-  position:absolute;
-  inset:22px;
-  border-radius:18px;
-  pointer-events:none;
-
-  /* RGB triad mask + faint vertical grille */
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(255,  0,  0, var(--mask-opacity)) 0px,
-      rgba(255,  0,  0, var(--mask-opacity)) 1px,
-      rgba(  0,255,  0, var(--mask-opacity)) 1px,
-      rgba(  0,255,  0, var(--mask-opacity)) 2px,
-      rgba(  0,  0,255, var(--mask-opacity)) 2px,
-      rgba(  0,  0,255, var(--mask-opacity)) 3px
-    ),
-    repeating-linear-gradient(
-      90deg,
-      rgba(0,0,0,.10) 0px,
-      rgba(0,0,0,.10) 1px,
-      rgba(0,0,0,0) 1px,
-      rgba(0,0,0,0) 2px
-    );
-
-  /* blend without relying on mix-blend-mode (Safari safe) */
-  opacity: 1;
-  filter: contrast(1.05) saturate(1.12);
-}
-
-/* ---------- TERMINAL SCREEN ---------- */
 .terminal{
   position:relative;
   width:100%;
   height:100%;
   border-radius:18px;
   overflow:hidden;
-
-  background:
-    radial-gradient(120% 90% at 50% 35%, rgba(124,255,99,.12) 0%, rgba(0,0,0,0) 60%),
-    linear-gradient(#010301, #000);
-
-  box-shadow:
-    inset 0 0 70px rgba(0,0,0,.88),
-    inset 0 0 0 1px rgba(255,255,255,.04);
+  background: radial-gradient(120% 90% at 50% 35%, rgba(124,255,122,.10) 0%, rgba(0,0,0,0) 62%),
+              linear-gradient(#010301, #000);
+  box-shadow: inset 0 0 70px rgba(0,0,0,.88);
+  filter: saturate(var(--crt-sat)) contrast(var(--crt-contrast)) brightness(var(--crt-bright));
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
 }
 
-/* Add a bit of "barrel" feel via subtle scale/warp illusion */
-.terminal{
-  transform: perspective(900px) translateZ(0);
-}
-
-/* ---------- TOP BAR ---------- */
+/* ===== Top + content ===== */
 .topbar{
   display:flex;
   align-items:center;
   justify-content:space-between;
   padding:14px 16px 10px 16px;
-
-  color: var(--phosphor);
   letter-spacing:.08em;
   opacity:.92;
   user-select:none;
-
-  text-shadow:
-    0 0 calc(10px * var(--bloom)) rgba(124,255,99,.45),
-    0 0 calc(2px * var(--bloom)) rgba(124,255,99,.45);
+  text-shadow: 0 0 12px rgba(124,255,122,.35);
 }
 .topbar__center{ opacity:.85; }
 
-/* ---------- MAIN CONTENT AREA ---------- */
 .screen{
   position:relative;
   height: calc(100% - 108px);
   padding: 10px 18px 16px 18px;
-
-  color: var(--phosphor);
   font-size: 18px;
   line-height: 1.35;
-  filter: saturate(1.12) contrast(1.05) brightness(1.02);
 
-  /* phosphor bloom + slight RGB fringing */
+  /* CRT glow + slight chroma fringing */
   text-shadow:
-    0 0 calc(16px * var(--bloom)) rgba(124,255,99,.50),
-    0 0 calc(3px * var(--bloom)) rgba(124,255,99,.55),
-    -0.75px 0 rgba(0,255,140,.18),
-     0.75px 0 rgba(130,140,255,.10);
-
-  /* soften just a touch so it feels like a photographed screen */
-  transform: translateZ(0);
-  filter: saturate(1.12) contrast(1.06) brightness(1.03) blur(var(--blur));
+    0 0 calc(18px * var(--glow)) rgba(124,255,122,.45),
+    0 0 2px rgba(124,255,122,.35),
+    -0.7px 0 rgba(0,255,120,.18),
+    0.7px 0 rgba(120,120,255,.10);
 }
 
-/* ---------- STATUS BAR ---------- */
 .statusbar{
   position:absolute;
   left:0; right:0; bottom:0;
   padding: 10px 14px;
-
-  background: rgba(124,255,99,.10);
-  border-top: 1px solid rgba(124,255,99,.20);
-
-  color: rgba(124,255,99,.95);
+  background: rgba(124,255,122,.10);
+  border-top: 1px solid rgba(124,255,122,.20);
   font-size: 15px;
   user-select:none;
-
-  text-shadow:
-    0 0 calc(12px * var(--bloom)) rgba(124,255,99,.40),
-    0 0 calc(2px * var(--bloom)) rgba(124,255,99,.35);
+  text-shadow: 0 0 10px rgba(124,255,122,.25);
 }
 
-/* ---------- YOUR OVERLAY DIVS (from index.html) ---------- */
-.crt__vignette,
-.crt__scanlines,
-.crt__noise{
-  position:absolute;
-  inset:22px;
-  border-radius:18px;
-  pointer-events:none;
-  z-index: 50; /* above terminal */
-}
-
-/* strong edge falloff */
-.crt__vignette{
-  background:
-    radial-gradient(120% 100% at 50% 50%,
-      rgba(0,0,0,0) 32%,
-      rgba(0,0,0,var(--vignette)) 100%);
-  opacity: .95;
-}
-
-/* scanlines + faint “rolling” banding */
-.crt__scanlines{
-  background:
-    /* fine scanlines */
-    repeating-linear-gradient(
-      to bottom,
-      rgba(0,0,0,0) 0px,
-      rgba(0,0,0,0) 2px,
-      rgba(0,0,0,var(--scan-opacity)) 3px
-    ),
-    /* subtle brighter line every few pixels */
-    repeating-linear-gradient(
-      to bottom,
-      rgba(255,255,255,.00) 0px,
-      rgba(255,255,255,.00) 14px,
-      rgba(255,255,255,.03) 15px
-    );
-  opacity: .85;
-  animation: roll 9s linear infinite;
-}
-
-/* grain/noise (this is what makes it feel “dirty” and filmed) */
-.crt__noise{
-  background-image: url("assets/noise.png");
-  background-size: 180px 180px; /* smaller = more visible grain */
-  opacity: var(--grain-opacity);
-  animation: noiseShift .55s steps(2,end) infinite;
-  filter: contrast(1.15) brightness(1.05);
-}
-
-/* ---------- UI COMPONENTS ---------- */
-h1,h2{ margin:0 0 10px 0; font-size: 22px; letter-spacing:.08em; }
-.dim{ color: var(--phosphor-dim); }
-.faint{ color: var(--phosphor-faint); }
-
-hr{
-  border:none;
-  border-top:1px solid rgba(124,255,99,.25);
-  margin:14px 0;
-}
-
-.row{
-  display:flex;
-  gap:12px;
-  flex-wrap:wrap;
-  align-items:center;
-}
-
+/* ===== Inputs + buttons ===== */
 label{
   display:block;
   margin: 10px 0 6px 0;
   color: var(--phosphor-dim);
 }
-
 input{
   width: min(520px, 100%);
   padding: 12px 12px;
   border-radius: 8px;
-  border: 1px solid rgba(124,255,99,.25);
+  border: 1px solid rgba(124,255,122,.25);
   background: rgba(0,0,0,.55);
-
   color: var(--phosphor);
   font: inherit;
   outline:none;
-
   box-shadow: inset 0 0 18px rgba(0,0,0,.75);
 }
 input:focus{
-  border-color: rgba(124,255,99,.55);
-  box-shadow: 0 0 0 3px rgba(124,255,99,.12), inset 0 0 18px rgba(0,0,0,.75);
+  border-color: rgba(124,255,122,.55);
+  box-shadow: 0 0 0 3px rgba(124,255,122,.12), inset 0 0 18px rgba(0,0,0,.75);
 }
-
 button{
   font: inherit;
   color: var(--phosphor);
   background: rgba(0,0,0,.35);
-  border: 1px solid rgba(124,255,99,.35);
+  border: 1px solid rgba(124,255,122,.35);
   padding: 10px 14px;
   border-radius: 10px;
   cursor:pointer;
   user-select:none;
-
-  box-shadow: 0 0 0 rgba(124,255,99,0);
   transition: transform .08s ease, box-shadow .2s ease, border-color .2s ease;
 }
 button:active{ transform: translateY(1px); }
-
-button.glow,
 button:hover{
-  border-color: rgba(124,255,99,.78);
+  border-color: rgba(124,255,122,.75);
   box-shadow:
-    0 0 18px rgba(124,255,99,.22),
-    0 0 40px rgba(124,255,99,.12);
+    0 0 18px rgba(124,255,122,.22),
+    0 0 40px rgba(124,255,122,.12);
 }
 
-.small{ font-size: 14px; }
+/* =========================================================
+   CRT OVERLAYS (Safari-friendly)
+   Use plain layered backgrounds (no backdrop-filter).
+========================================================= */
 
-.codebox{
-  display:inline-block;
-  padding: 10px 12px;
-  border: 1px dashed rgba(124,255,99,.35);
-  border-radius: 10px;
-  background: rgba(0,0,0,.45);
-  letter-spacing:.22em;
-  font-size: 22px;
-}
-
-/* ---------- ANIMATIONS ---------- */
-@keyframes noiseShift{
-  0%{ transform: translate(0,0); }
-  20%{ transform: translate(-6px,3px); }
-  40%{ transform: translate(4px,-4px); }
-  60%{ transform: translate(6px,2px); }
-  80%{ transform: translate(-3px,-2px); }
-  100%{ transform: translate(0,0); }
-}
-
-/* scanline roll (very subtle) */
-@keyframes roll{
-  0%{ background-position: 0 0, 0 0; }
-  100%{ background-position: 0 260px, 0 120px; }
-}
-
-/* brightness flicker + tiny jitter */
-@keyframes crtFlicker{
-  0%,100% { filter: brightness(1) contrast(1.06); transform: translateY(0); }
-  48% { filter: brightness(1.02) contrast(1.08); }
-  50% { filter: brightness(.98) contrast(1.12); transform: translateY(.6px); }
-  52% { filter: brightness(1.01) contrast(1.08); transform: translateY(-.4px); }
-  70% { filter: brightness(1.00) contrast(1.08); }
-}
-
-/* Respect reduced motion */
-@media (prefers-reduced-motion: reduce){
-  .crt, .crt__noise, .crt__scanlines{ animation:none !important; }
-}
-
-/* ===== EXTRA: HARD CRT MASK + BLOOM (Safari-friendly) ===== */
-:root{
-  --mask-opacity: .34;     /* crank it */
-  --scan-opacity: .40;     /* crank it */
-  --grain-opacity: .26;    /* crank it */
-  --defocus: .55px;        /* softens crisp text */
-}
-
-/* Make the “screen” feel photographed */
-.screen{
-  filter: saturate(1.18) contrast(1.10) brightness(1.04) blur(var(--defocus));
-}
-
-/* Strong RGB triad mask (pixels) */
-.crt__mask{
+/* Put these as siblings above .terminal in your HTML */
+.crt__vignette,
+.crt__scanlines,
+.crt__noise,
+.crt__mask,
+.crt__sheen{
   position:absolute;
-  inset:0;
-  pointer-events:none;
-  z-index: 5;
+  inset:22px;
   border-radius:18px;
-
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(255,0,0,var(--mask-opacity)) 0px,
-      rgba(255,0,0,var(--mask-opacity)) 1px,
-      rgba(0,255,0,var(--mask-opacity)) 1px,
-      rgba(0,255,0,var(--mask-opacity)) 2px,
-      rgba(0,0,255,var(--mask-opacity)) 2px,
-      rgba(0,0,255,var(--mask-opacity)) 3px
-    );
-
-  opacity: .85;
-  filter: contrast(1.08) saturate(1.15);
+  pointer-events:none;
+  z-index: 20;
 }
 
-/* Beef scanlines */
+/* Curved glass + edge darkening */
+.crt__vignette{
+  opacity: var(--vignette);
+  background:
+    radial-gradient(120% 100% at 50% 50%,
+      rgba(0,0,0,0) 35%,
+      rgba(0,0,0,.80) 100%),
+    radial-gradient(140% 120% at 50% 50%,
+      rgba(255,255,255,.05) 0%,
+      rgba(255,255,255,0) 55%);
+}
+
+/* Scanlines (tighter = more “CRT”) */
 .crt__scanlines{
-  opacity: 1 !important;
+  opacity: var(--scan-opacity);
   background:
     repeating-linear-gradient(
       to bottom,
       rgba(0,0,0,0) 0px,
-      rgba(0,0,0,0) 1px,
-      rgba(0,0,0,var(--scan-opacity)) 2px
-    ),
-    repeating-linear-gradient(
-      to bottom,
-      rgba(255,255,255,0) 0px,
-      rgba(255,255,255,0) 12px,
-      rgba(255,255,255,.04) 13px
+      rgba(0,0,0,0) 2px,
+      rgba(0,0,0,.65) 3px
     );
 }
 
-/* Heavier grain */
-.crt__noise{
-  opacity: var(--grain-opacity) !important;
-  background-size: 120px 120px !important;
-  filter: contrast(1.25) brightness(1.10);
+/* RGB triad / pixel mask */
+.crt__mask{
+  opacity: var(--triad-opacity);
+  background:
+    /* vertical grille */
+    repeating-linear-gradient(
+      to right,
+      rgba(255,0,0,.38) 0px,
+      rgba(255,0,0,.38) 1px,
+      rgba(0,255,0,.34) 1px,
+      rgba(0,255,0,.34) 2px,
+      rgba(0,140,255,.30) 2px,
+      rgba(0,140,255,.30) 3px
+    );
+  /* “pixel-ish” look: keep it crisp */
+  image-rendering: pixelated;
+  -webkit-image-rendering: pixelated;
 }
 
-/* Extra “phosphor bloom” without blend-modes */
-.terminal::after{
-  content:"";
-  position:absolute;
-  inset:0;
-  pointer-events:none;
-  border-radius:18px;
-  z-index: 4;
+/* Grain/noise from your assets/noise.png */
+.crt__noise{
+  opacity: var(--noise-opacity);
+  background-image: url("assets/noise.png");
+  background-size: 140px 140px;
+  animation: noiseShift .45s steps(2,end) infinite;
+}
 
+/* light screen sheen */
+.crt__sheen{
+  opacity:.22;
   background:
-    radial-gradient(120% 100% at 50% 45%, rgba(124,255,99,.18) 0%, rgba(0,0,0,0) 58%),
-    radial-gradient(140% 120% at 50% 50%, rgba(255,255,255,.06) 0%, rgba(0,0,0,0) 55%);
-  opacity:.55;
-  filter: blur(1px);
+    radial-gradient(120% 70% at 20% 0%,
+      rgba(255,255,255,.10) 0%,
+      rgba(255,255,255,0) 60%),
+    radial-gradient(90% 60% at 80% 100%,
+      rgba(255,255,255,.06) 0%,
+      rgba(255,255,255,0) 70%);
+}
+
+/* Flicker + micro jitter (subtle) */
+.crt{
+  animation: flicker 5.0s infinite;
+  will-change: transform, filter;
+}
+@keyframes flicker{
+  0%,100% { filter: brightness(1) contrast(1.0); transform: translateY(0); }
+  48% { filter: brightness(1.02) contrast(1.03); }
+  50% { filter: brightness(.98) contrast(1.08); transform: translateY(.6px); }
+  52% { filter: brightness(1.01) contrast(1.04); transform: translateY(-.4px); }
+}
+
+@keyframes noiseShift{
+  0%{ transform: translate(0,0); }
+  25%{ transform: translate(-2px,1px); }
+  50%{ transform: translate(2px,-1px); }
+  75%{ transform: translate(1px,2px); }
+  100%{ transform: translate(0,0); }
+}
+
+/* ===== Little helpers ===== */
+.small{ font-size: 14px; }
+.dim{ color: var(--phosphor-dim); }
+hr{
+  border:none;
+  border-top:1px solid rgba(124,255,122,.25);
+  margin:14px 0;
+}
+.row{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:center;
 }
