@@ -4,7 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>VAULT 131 DATABASE</title>
-
   <link rel="stylesheet" href="./styles.css" />
 </head>
 
@@ -14,7 +13,6 @@
     <filter id="crtBloom" x="-30%" y="-30%" width="160%" height="160%">
       <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="blur1"/>
       <feGaussianBlur in="SourceGraphic" stdDeviation="6.5" result="blur2"/>
-
       <feColorMatrix in="blur2" type="matrix"
         values="
           0 0 0 0 0.00
@@ -22,7 +20,6 @@
           0 0 0 0 0.00
           0 0 0 1 0"
         result="glowGreen"/>
-
       <feMerge>
         <feMergeNode in="glowGreen"/>
         <feMergeNode in="blur1"/>
@@ -31,36 +28,11 @@
     </filter>
   </svg>
 
-  <!-- ===== FEATURE: CRT WRAPPER START ===== -->
   <main class="crt" id="crt">
     <div class="crt__outer" aria-hidden="true"></div>
 
     <section class="terminal" aria-live="polite">
-
-      <!-- CRT overlays (must exist) -->
-      <div class="crt__vignette" aria-hidden="true"></div>
-      <div class="crt__roll" aria-hidden="true"></div>
-      <div class="crt__scanlines" aria-hidden="true"></div>
-      <div class="crt__mask" aria-hidden="true"></div>
-      <div class="crt__noise" aria-hidden="true"></div>
-
-      <!-- ===== BOOT / LOADING OVERLAY ===== -->
-      <div class="boot" id="boot" aria-hidden="true">
-        <div class="boot__frame">
-          <div class="boot__title">INITIALIZING VAULT-TEC TERMINAL</div>
-
-          <div class="boot__lines" id="bootLines"></div>
-
-          <div class="boot__bar" aria-hidden="true">
-            <div class="boot__fill" id="bootFill"></div>
-          </div>
-
-          <div class="boot__pct" id="bootPct">0%</div>
-        </div>
-      </div>
-      <!-- ===== END BOOT ===== -->
-
-      <!-- ===== CONTENT (kept separate for bloom targeting) ===== -->
+      <!-- ✅ ALL “content” lives in here (so overlays affect loading bar too) -->
       <div class="terminal__content">
         <header class="topbar" role="banner" aria-label="Terminal header">
           <div class="topbar__left">GCC(1)</div>
@@ -68,96 +40,25 @@
           <div class="topbar__right">GCC(1)</div>
         </header>
 
+        <!-- app.js renders EVERYTHING (including your loading bar) in here -->
         <div class="screen" id="screen"></div>
 
         <footer class="statusbar" role="contentinfo" aria-label="Terminal status">
           <span id="statusText">Initializing Vault-Tec terminal…</span>
         </footer>
       </div>
-      <!-- ===== END CONTENT ===== -->
 
+      <!-- ✅ CRT overlays stay OUTSIDE content so they sit on top of EVERYTHING -->
+      <div class="crt__vignette" aria-hidden="true"></div>
+      <div class="crt__scanlines" aria-hidden="true"></div>
+      <div class="crt__mask" aria-hidden="true"></div>
+      <div class="crt__noise" aria-hidden="true"></div>
+
+      <!-- optional: roll band if you’re using it -->
+      <div class="crt__roll" aria-hidden="true"></div>
     </section>
   </main>
-  <!-- ===== FEATURE: CRT WRAPPER END ===== -->
 
   <script src="./app.js" defer></script>
-
-  <!-- ===== Boot typing + progress ===== -->
-  <script>
-  (() => {
-    const boot = document.getElementById('boot');
-    const fill = document.getElementById('bootFill');
-    const pct  = document.getElementById('bootPct');
-    const linesEl = document.getElementById('bootLines');
-
-    const lines = [
-      "> establishing secure link...",
-      "> loading personnel database...",
-      "> calibrating phosphor grid...",
-      "> syncing audio subsystem...",
-      "> warming phosphor...",
-      "> verification complete."
-    ];
-
-    // typing
-    let lineIndex = 0;
-
-    const typeLine = (text) => {
-      const row = document.createElement('div');
-      row.className = 'boot__line';
-      linesEl.appendChild(row);
-
-      let i = 0;
-      const step = () => {
-        const chunk = (Math.random() < 0.12) ? 2 : 1;
-        i = Math.min(text.length, i + chunk);
-        row.textContent = text.slice(0, i);
-
-        if (i >= text.length) {
-          row.classList.add('done');
-          return;
-        }
-        setTimeout(step, 18 + Math.random() * 22);
-      };
-      step();
-    };
-
-    const startTyping = () => {
-      typeLine(lines[lineIndex]);
-      lineIndex++;
-
-      if (lineIndex < lines.length) {
-        setTimeout(startTyping, 260 + Math.random() * 260);
-      }
-    };
-
-    // progress
-    let p = 0;
-    const tick = () => {
-      const speed =
-        p < 25 ? 1.1 :
-        p < 70 ? 2.0 :
-        p < 90 ? 1.0 : 0.55;
-
-      p = Math.min(100, p + speed + Math.random() * 1.4);
-      const pp = Math.floor(p);
-
-      fill.style.width = pp + '%';
-      pct.textContent = pp + '%';
-
-      if (p >= 100) {
-        setTimeout(() => {
-          boot.classList.add('is-done');
-          setTimeout(() => boot.remove(), 650);
-        }, 420);
-        return;
-      }
-      requestAnimationFrame(tick);
-    };
-
-    startTyping();
-    requestAnimationFrame(tick);
-  })();
-  </script>
 </body>
 </html>
