@@ -359,3 +359,22 @@ button:hover{
   opacity: .9;
   filter: blur(.25px);
 }
+
+/* ===== FIX: FORCE CRT LAYERS ON TOP START ===== */
+.terminal { position: relative; }
+
+.crt__vignette,
+.crt__scanlines,
+.crt__noise{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 50;
+  border-radius: 18px;
+}
+
+.topbar, .screen, .statusbar{
+  position: relative;
+  z-index: 10;
+}
+/* ===== FIX: FORCE CRT LAYERS ON TOP END ===== */
