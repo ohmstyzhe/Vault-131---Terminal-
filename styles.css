@@ -142,6 +142,7 @@ body{
   contrast(1.12)
   saturate(1.12)
   drop-shadow(0 0 6px rgba(124,255,122,.18));
+  drop-shadow(0 0 26px rgba(124,255,122,.14));
 }
 
 /* Headings / strong “burn” */
@@ -150,8 +151,8 @@ body{
   text-shadow:
     0 0 2px rgba(255,255,255,.24),
     0 0 8px rgba(124,255,122,.85),
-    0 0 22px rgba(124,255,122,.38),
-    0 0 50px rgba(124,255,122,.16);
+    0 0 14px rgba(124,255,122,.35),
+    0 0 34px rgba(124,255,122,.14);
 }
 
 /* Status bar is NOT absolute anymore */
