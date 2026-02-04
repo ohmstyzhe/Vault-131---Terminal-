@@ -348,3 +348,80 @@ button:hover{
 @media (prefers-reduced-motion: reduce){
   .crt, .crt__noise, .crt__scanlines{ animation:none !important; }
 }
+
+/* ===== EXTRA: HARD CRT MASK + BLOOM (Safari-friendly) ===== */
+:root{
+  --mask-opacity: .34;     /* crank it */
+  --scan-opacity: .40;     /* crank it */
+  --grain-opacity: .26;    /* crank it */
+  --defocus: .55px;        /* softens crisp text */
+}
+
+/* Make the “screen” feel photographed */
+.screen{
+  filter: saturate(1.18) contrast(1.10) brightness(1.04) blur(var(--defocus));
+}
+
+/* Strong RGB triad mask (pixels) */
+.crt__mask{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  z-index: 5;
+  border-radius:18px;
+
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255,0,0,var(--mask-opacity)) 0px,
+      rgba(255,0,0,var(--mask-opacity)) 1px,
+      rgba(0,255,0,var(--mask-opacity)) 1px,
+      rgba(0,255,0,var(--mask-opacity)) 2px,
+      rgba(0,0,255,var(--mask-opacity)) 2px,
+      rgba(0,0,255,var(--mask-opacity)) 3px
+    );
+
+  opacity: .85;
+  filter: contrast(1.08) saturate(1.15);
+}
+
+/* Beef scanlines */
+.crt__scanlines{
+  opacity: 1 !important;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0,0,0,0) 0px,
+      rgba(0,0,0,0) 1px,
+      rgba(0,0,0,var(--scan-opacity)) 2px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(255,255,255,0) 0px,
+      rgba(255,255,255,0) 12px,
+      rgba(255,255,255,.04) 13px
+    );
+}
+
+/* Heavier grain */
+.crt__noise{
+  opacity: var(--grain-opacity) !important;
+  background-size: 120px 120px !important;
+  filter: contrast(1.25) brightness(1.10);
+}
+
+/* Extra “phosphor bloom” without blend-modes */
+.terminal::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  border-radius:18px;
+  z-index: 4;
+
+  background:
+    radial-gradient(120% 100% at 50% 45%, rgba(124,255,99,.18) 0%, rgba(0,0,0,0) 58%),
+    radial-gradient(140% 120% at 50% 50%, rgba(255,255,255,.06) 0%, rgba(0,0,0,0) 55%);
+  opacity:.55;
+  filter: blur(1px);
+}
