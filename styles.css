@@ -347,6 +347,7 @@ button:hover{
    OVERLAYS — ABOVE content, crisp
    ============================== */
 .crt__vignette,
+.crt__roll,
 .crt__scanlines,
 .crt__mask,
 .crt__noise{
