@@ -100,5 +100,40 @@
 <!-- ===== APP SCRIPT ===== -->
 <script src="./app.js" defer></script>
 
+<script>
+(() => {
+  const boot = document.getElementById('boot');
+  const fill = document.getElementById('bootFill');
+  const pct  = document.getElementById('bootPct');
+
+  // makes it feel "real": slow -> fast -> slow
+  let p = 0;
+  const tick = () => {
+    const speed =
+      p < 25 ? 1.2 :
+      p < 70 ? 2.1 :
+      p < 90 ? 1.1 : 0.6;
+
+    p = Math.min(100, p + speed + Math.random()*1.6);
+    const pp = Math.floor(p);
+
+    fill.style.width = pp + '%';
+    pct.textContent = pp + '%';
+
+    if (p >= 100) {
+      setTimeout(() => {
+        boot.classList.add('is-done');
+        setTimeout(() => boot.remove(), 650);
+      }, 220);
+      return;
+    }
+    requestAnimationFrame(tick);
+  };
+
+  // ensure your CRT loads first, then boot runs
+  requestAnimationFrame(tick);
+})();
+</script>
+
 </body>
 </html>
