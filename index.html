@@ -4,59 +4,61 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>VAULT 131 DATABASE</title>
-
   <link rel="stylesheet" href="./styles.css" />
 </head>
 
 <body>
+
   <!-- ===== CRT BLOOM FILTER (Safari) ===== -->
   <svg width="0" height="0" style="position:absolute">
-    <filter id="crtBloom" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur in="SourceGraphic" stdDeviation="2.4" result="blur1"/>
-      <feGaussianBlur in="SourceGraphic" stdDeviation="6.5" result="blur2"/>
+    <filter id="crtBloom" x="-35%" y="-35%" width="170%" height="170%">
+      <!-- tight bloom -->
+      <feGaussianBlur in="SourceGraphic" stdDeviation="1.6" result="b1" />
+      <!-- wide bloom -->
+      <feGaussianBlur in="SourceGraphic" stdDeviation="5.8" result="b2" />
 
-      <feColorMatrix in="blur2" type="matrix"
+      <!-- tint bloom green + boost -->
+      <feColorMatrix in="b2" type="matrix"
         values="
           0 0 0 0 0.00
           0 1 0 0 0.15
           0 0 0 0 0.00
           0 0 0 1 0"
-        result="glowGreen"/>
+        result="g" />
 
       <feMerge>
-        <feMergeNode in="glowGreen"/>
-        <feMergeNode in="blur1"/>
-        <feMergeNode in="SourceGraphic"/>
+        <feMergeNode in="g" />
+        <feMergeNode in="b1" />
+        <feMergeNode in="SourceGraphic" />
       </feMerge>
     </filter>
   </svg>
 
   <main class="crt" id="crt">
-    <!-- optional outer glass if you ever style it -->
-    <div class="crt__outer" aria-hidden="true"></div>
-
     <section class="terminal" aria-live="polite">
-      <!-- ===== CRT OVERLAYS (ABOVE CONTENT) ===== -->
+
+      <!-- OVERLAYS (crisp) -->
       <div class="crt__vignette" aria-hidden="true"></div>
       <div class="crt__scanlines" aria-hidden="true"></div>
       <div class="crt__mask" aria-hidden="true"></div>
       <div class="crt__noise" aria-hidden="true"></div>
 
-      <!-- ===== CONTENT WRAPPER (FIXES OVERLAP) ===== -->
+      <!-- CONTENT (flex layout so footer never overlaps screen) -->
       <div class="terminal__content">
         <header class="topbar" role="banner" aria-label="Terminal header">
-          <div class="topbar__left">GCC(1)</div>
-          <div class="topbar__center">GNU</div>
-          <div class="topbar__right">GCC(1)</div>
+          <div class="topbar__left bloom">GCC(1)</div>
+          <div class="topbar__center bloom">GNU</div>
+          <div class="topbar__right bloom">GCC(1)</div>
         </header>
 
-        <!-- app.js renders screens here -->
+        <!-- app.js renders screens in here -->
         <div class="screen" id="screen"></div>
 
         <footer class="statusbar" role="contentinfo" aria-label="Terminal status">
           <span id="statusText">Initializing Vault-Tec terminal…</span>
         </footer>
       </div>
+
     </section>
   </main>
 
