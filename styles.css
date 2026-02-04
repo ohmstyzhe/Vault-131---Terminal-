@@ -1,19 +1,18 @@
 :root{
   --crt-bg:#020302;
-
   --p:#7CFF7A;
 
   /* HARD knobs */
-  --noise-opacity:.32;   /* heavy grain */
-  --mask-opacity:.34;    /* aggressive RGB grille */
-  --scan-opacity:.52;    /* strong scanlines */
+  --noise-opacity:.34;   /* heavy grain */
+  --mask-opacity:.36;    /* aggressive RGB grille */
+  --scan-opacity:.54;    /* strong scanlines */
   --vignette-strength:.92;
 
-  /* glow / bloom */
-  --txt-glow-1: rgba(124,255,122,.75);
-  --txt-glow-2: rgba(124,255,122,.40);
-  --txt-glow-3: rgba(124,255,122,.22);
-  --txt-glow-4: rgba(124,255,122,.12);
+  /* glow */
+  --txt-glow-1: rgba(124,255,122,.85);
+  --txt-glow-2: rgba(124,255,122,.48);
+  --txt-glow-3: rgba(124,255,122,.26);
+  --txt-glow-4: rgba(124,255,122,.14);
 
   --wobble:.55px;
 }
@@ -39,7 +38,8 @@ body{
   height:min(680px, 90vh);
   padding:22px;
   border-radius:28px;
-  background: radial-gradient(120% 120% at 50% 40%, rgba(124,255,122,.06), rgba(0,0,0,.90) 60%, #000 100%);
+  background:
+    radial-gradient(120% 120% at 50% 40%, rgba(124,255,122,.06), rgba(0,0,0,.92) 60%, #000 100%);
   box-shadow:
     0 40px 120px rgba(0,0,0,.90),
     inset 0 0 0 2px rgba(255,255,255,.04);
@@ -50,25 +50,26 @@ body{
   .crt { padding-top: calc(22px + env(safe-area-inset-top)); }
 }
 
-/* Screen */
+/* Screen container */
 .terminal{
   position:relative;
   width:100%;
   height:100%;
   border-radius:18px;
   overflow:hidden;
+  isolation:isolate; /* keeps blend modes sane */
 
-  /* make it DARKER: kill the grey wash */
+  /* DARK tube */
   background:
-    radial-gradient(120% 95% at 50% 40%, rgba(124,255,122,.10) 0%, rgba(0,0,0,0) 56%),
-    radial-gradient(160% 120% at 50% 55%, rgba(0,0,0,0) 0%, rgba(0,0,0,.70) 60%, rgba(0,0,0,.94) 100%),
+    radial-gradient(120% 95% at 50% 40%, rgba(124,255,122,.12) 0%, rgba(0,0,0,0) 56%),
+    radial-gradient(160% 120% at 50% 55%, rgba(0,0,0,0) 0%, rgba(0,0,0,.76) 60%, rgba(0,0,0,.97) 100%),
     linear-gradient(#020302, #000);
+  box-shadow: inset 0 0 100px rgba(0,0,0,.95);
 
-  box-shadow: inset 0 0 90px rgba(0,0,0,.94);
   animation: crtFlicker 4.6s infinite;
 }
 
-/* Curvature + glass sheen */
+/* Glass sheen */
 .terminal::before{
   content:"";
   position:absolute; inset:-2%;
@@ -77,17 +78,22 @@ body{
     radial-gradient(120% 120% at 30% 20%, rgba(255,255,255,.05) 0%, rgba(255,255,255,0) 40%);
   pointer-events:none;
   mix-blend-mode: screen;
-  opacity:.42;
+  opacity:.40;
   transform: scale(1.02);
+  z-index: 2;
 }
 
-/* CONTENT gets bloom filter */
+/* CONTENT LAYER (below overlays) */
 .terminal__content{
   position:relative;
-  z-index: 1;
+  z-index: 3;
 
-  /* the actual bloom pipeline */
-  filter: url(#crtBloom) contrast(1.08) saturate(1.12);
+  height:100%;
+  display:flex;
+  flex-direction:column;
+
+  /* IMPORTANT: no global bloom here (prevents weird iOS layout/bleed) */
+  filter:none !important;
   transform: translateZ(0);
 }
 
@@ -100,55 +106,62 @@ body{
   letter-spacing:.10em;
   user-select:none;
   color: var(--p);
+  opacity:.94;
 
   text-shadow:
     0 0 4px var(--txt-glow-1),
     0 0 12px var(--txt-glow-2),
     0 0 26px var(--txt-glow-3);
-  opacity:.94;
 }
 .topbar__center{ opacity:.86; }
 
-/* Main area */
+/* Main area now flexes correctly (no overlap with footer) */
 .screen{
   flex: 1;
-  min-height: 0; /* important for iPad Safari */
-  position: relative;
+  min-height: 0;            /* critical for iOS flex scroll sizing */
+  overflow:auto;            /* if content grows, it scrolls */
   padding: 10px 18px 16px 18px;
+
   color: var(--p);
   font-size: 18px;
   line-height: 1.35;
-}
 
-  /* phosphor glow + sharp sparkle */
+  /* glow + phosphor sparkle */
   text-shadow:
-    0 0 1px rgba(255,255,255,.22),      /* sparkle */
-    0 0 3px var(--txt-glow-1),          /* tight glow */
+    0 0 1px rgba(255,255,255,.22),
+    0 0 3px var(--txt-glow-1),
     0 0 12px var(--txt-glow-2),
     0 0 26px var(--txt-glow-3),
     0 0 44px var(--txt-glow-4);
 
-  /* slight defocus like a real tube */
-  filter: blur(.28px) contrast(1.12) saturate(1.12);
+  /* tiny tube softness (not full blur) */
+  filter: blur(.22px) contrast(1.14) saturate(1.12);
 }
 
-/* Make titles “burn” */
+/* Headings / strong “burn” */
 .screen h1, .screen h2, .screen strong{
   color: var(--p);
   text-shadow:
-    0 0 2px rgba(255,255,255,.22),
-    0 0 6px rgba(124,255,122,.80),
-    0 0 18px rgba(124,255,122,.38),
-    0 0 40px rgba(124,255,122,.16);
+    0 0 2px rgba(255,255,255,.24),
+    0 0 8px rgba(124,255,122,.85),
+    0 0 22px rgba(124,255,122,.38),
+    0 0 50px rgba(124,255,122,.16);
 }
 
-/* Status bar */
+/* Status bar is NOT absolute anymore */
 .statusbar{
-  position: relative;
-  margin-top: auto; /* pushes it to bottom of flex column */
+  flex: 0 0 auto;
   padding: 10px 14px;
   background: rgba(124,255,122,.07);
   border-top: 1px solid rgba(124,255,122,.18);
+
+  color: rgba(124,255,122,.95);
+  font-size: 15px;
+  user-select:none;
+
+  text-shadow:
+    0 0 2px rgba(255,255,255,.18),
+    0 0 12px rgba(124,255,122,.34);
 }
 
 /* Inputs/buttons */
@@ -183,6 +196,7 @@ button{
   cursor:pointer;
   user-select:none;
   transition: transform .08s ease, box-shadow .2s ease, border-color .2s ease;
+
   text-shadow: 0 0 10px rgba(124,255,122,.20);
 }
 button:active{ transform: translateY(1px); }
@@ -192,7 +206,7 @@ button:hover{
 }
 
 /* ==============================
-   OVERLAYS — sit ABOVE content
+   OVERLAYS — ABOVE content, crisp
    ============================== */
 .crt__vignette,
 .crt__scanlines,
@@ -201,20 +215,21 @@ button:hover{
   position:absolute;
   inset:0;
   pointer-events:none;
-  z-index: 5;
+  z-index: 6;
 }
 
+/* vignette */
 .crt__vignette{
   background:
     radial-gradient(120% 100% at 50% 50%,
       rgba(0,0,0,0) 32%,
-      rgba(0,0,0,.70) 78%,
+      rgba(0,0,0,.72) 78%,
       rgba(0,0,0,1) 100%);
   opacity: var(--vignette-strength);
   mix-blend-mode: multiply;
 }
 
-/* scanlines + a little banding */
+/* scanlines stay crisp (no blur/filter on this layer) */
 .crt__scanlines{
   opacity: var(--scan-opacity);
   background:
@@ -222,7 +237,7 @@ button:hover{
       to bottom,
       rgba(0,0,0,0) 0px,
       rgba(0,0,0,0) 2px,
-      rgba(0,0,0,.30) 3px
+      rgba(0,0,0,.32) 3px
     ),
     repeating-linear-gradient(
       to bottom,
@@ -233,26 +248,26 @@ button:hover{
   mix-blend-mode: multiply;
 }
 
-/* “see the pixels” RGB grille */
+/* aggressive RGB grille */
 .crt__mask{
   opacity: var(--mask-opacity);
   background:
     repeating-linear-gradient(
       to right,
-      rgba(255,0,0,.30) 0px,
-      rgba(255,0,0,.30) 1px,
-      rgba(0,255,0,.24) 1px,
-      rgba(0,255,0,.24) 2px,
-      rgba(0,140,255,.24) 2px,
-      rgba(0,140,255,.24) 3px
+      rgba(255,0,0,.32) 0px,
+      rgba(255,0,0,.32) 1px,
+      rgba(0,255,0,.26) 1px,
+      rgba(0,255,0,.26) 2px,
+      rgba(0,140,255,.26) 2px,
+      rgba(0,140,255,.26) 3px
     ),
     radial-gradient(circle at 50% 50%, rgba(255,255,255,.12) 0 1px, rgba(255,255,255,0) 2px);
   background-size: 3px 100%, 4px 4px;
   mix-blend-mode: overlay;
-  filter: contrast(1.25) saturate(1.2);
+  filter: contrast(1.3) saturate(1.25);
 }
 
-/* Heavy grain */
+/* heavy grain */
 .crt__noise{
   opacity: var(--noise-opacity);
   mix-blend-mode: overlay;
@@ -267,37 +282,20 @@ button:hover{
   animation: noiseMove .28s steps(2,end) infinite;
 }
 
-/* Flicker / wobble */
-@keyframes crtFlicker{
-  0%,100% { filter: brightness(1.00) contrast(1.02); transform: translateY(0); }
-  48% { filter: brightness(1.03) contrast(1.06); }
-  50% { filter: brightness(.95) contrast(1.12); transform: translateY(var(--wobble)); }
-  52% { filter: brightness(1.02) contrast(1.07); transform: translateY(calc(var(--wobble) * -0.7)); }
-  70% { filter: brightness(1.00) contrast(1.06); }
-}
+/* ==============================
+   BLOOM TARGETING
+   ============================== */
 
-@keyframes noiseMove{
-  0%   { background-position: 0 0, 0 0, 0 0; }
-  25%  { background-position: -18px 10px, 0 0, 0 0; }
-  50%  { background-position: 14px -14px, 0 0, 0 0; }
-  75%  { background-position: 22px 8px, 0 0, 0 0; }
-  100% { background-position: 0 0, 0 0, 0 0; }
-}
-
-/* ---------- BLOOM TARGETING (iPad Safari friendly) ---------- */
-
-/* default: NO bloom on the whole content */
-.terminal__content { filter: none !important; }
-
-/* bloom the “hero” stuff */
-.topbar,
+/* Apply bloom only to “hero” elements.
+   You already add class="bloom" to topbar labels in index. */
+.bloom,
 .screen h1,
 .screen h2,
-button {
+button{
   filter: url(#crtBloom);
 }
 
-/* keep small text crisp but still glowy */
+/* Keep body text crisp-ish (glow via text-shadow only) */
 .screen,
 .statusbar,
 label,
@@ -306,24 +304,23 @@ input,
 .screen p,
 .screen small,
 .screen .dim,
-.screen .faint {
+.screen .faint{
   filter: none !important;
-  text-shadow:
-    0 0 10px rgba(124,255,99,.45),
-    0 0 18px rgba(124,255,99,.22),
-    0 0 2px rgba(124,255,99,.50);
 }
 
-/* keep borders/lines sharp (bloom on borders looks “double”) */
-input, button {
-  -webkit-font-smoothing: antialiased;
-  text-rendering: geometricPrecision;
+/* Flicker / wobble */
+@keyframes crtFlicker{
+  0%,100% { filter: brightness(1.00) contrast(1.03); transform: translateY(0); }
+  48% { filter: brightness(1.03) contrast(1.07); }
+  50% { filter: brightness(.94) contrast(1.14); transform: translateY(var(--wobble)); }
+  52% { filter: brightness(1.02) contrast(1.08); transform: translateY(calc(var(--wobble) * -0.7)); }
+  70% { filter: brightness(1.00) contrast(1.07); }
 }
 
-/* optional: slightly boost headline glow without blurring body */
-.screen h1, .screen h2 {
-  text-shadow:
-    0 0 12px rgba(124,255,99,.55),
-    0 0 28px rgba(124,255,99,.25),
-    0 0 2px rgba(124,255,99,.65);
+@keyframes noiseMove{
+  0%   { background-position: 0 0, 0 0, 0 0; }
+  25%  { background-position: -18px 10px, 0 0, 0 0; }
+  50%  { background-position: 14px -14px, 0 0, 0 0; }
+  75%  { background-position: 22px 8px, 0 0, 0 0; }
+  100% { background-position: 0 0, 0 0, 0 0; }
 }
