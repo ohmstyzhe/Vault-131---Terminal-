@@ -2,55 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <title>VAULT 131 DATABASE</title>
 
   <!-- ===== FEATURE: STYLESHEET LINK START ===== -->
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="./styles.css" />
   <!-- ===== FEATURE: STYLESHEET LINK END ===== -->
 </head>
 
 <body>
   <!-- ===== FEATURE: CRT WRAPPER START ===== -->
   <main class="crt" id="crt">
-
-    <!-- ===== FEATURE: HEAVY CRT OVERLAYS START ===== -->
-    <!-- These MUST be direct children of .crt (NOT inside .terminal) -->
-    <div class="crt__vignette"></div>
-    <div class="crt__scanlines"></div>
-    <div class="crt__noise"></div>
-    <!-- ===== FEATURE: HEAVY CRT OVERLAYS END ===== -->
+    <!-- ===== FEATURE: OUTER GLASS / SHEEN START ===== -->
+    <div class="crt__outer" aria-hidden="true"></div>
+    <!-- ===== FEATURE: OUTER GLASS / SHEEN END ===== -->
 
     <!-- ===== FEATURE: TERMINAL START ===== -->
     <section class="terminal" aria-live="polite">
+      
+      <!-- ===== FEATURE: HEAVY CRT OVERLAYS START ===== -->
+      <!-- IMPORTANT: These must exist for your CSS CRT layers to show -->
+      <div class="crt__vignette" aria-hidden="true"></div>
+      <div class="crt__scanlines" aria-hidden="true"></div>
+      <div class="crt__noise" aria-hidden="true"></div>
+      <!-- ===== FEATURE: HEAVY CRT OVERLAYS END ===== -->
 
       <!-- ===== FEATURE: TOP BAR START ===== -->
-      <header class="topbar" role="banner">
+      <header class="topbar" role="banner" aria-label="Terminal header">
         <div class="topbar__left">GCC(1)</div>
         <div class="topbar__center">GNU</div>
         <div class="topbar__right">GCC(1)</div>
       </header>
       <!-- ===== FEATURE: TOP BAR END ===== -->
 
-      <!-- ===== FEATURE: APP SCREEN OUTPUT START ===== -->
-      <!-- app.js renders screens here -->
+      <!-- ===== FEATURE: APP OUTPUT START ===== -->
+      <!-- app.js renders the screens in here -->
       <div class="screen" id="screen"></div>
-      <!-- ===== FEATURE: APP SCREEN OUTPUT END ===== -->
+      <!-- ===== FEATURE: APP OUTPUT END ===== -->
 
       <!-- ===== FEATURE: STATUS BAR START ===== -->
-      <footer class="statusbar">
+      <footer class="statusbar" role="contentinfo" aria-label="Terminal status">
         <span id="statusText">Initializing Vault-Tec terminal…</span>
       </footer>
       <!-- ===== FEATURE: STATUS BAR END ===== -->
 
     </section>
     <!-- ===== FEATURE: TERMINAL END ===== -->
-
   </main>
   <!-- ===== FEATURE: CRT WRAPPER END ===== -->
 
+
   <!-- ===== FEATURE: APP SCRIPT START ===== -->
-  <script src="app.js"></script>
+  <!-- IMPORTANT: defer ensures DOM exists before app.js runs -->
+  <script src="./app.js" defer></script>
   <!-- ===== FEATURE: APP SCRIPT END ===== -->
 </body>
 </html>
