@@ -391,3 +391,55 @@ button:hover{
 @media (prefers-reduced-motion: reduce){
   .crt, .crt__noise, .screen::before{ animation:none !important; }
 }
+
+/* =========================================================
+   iPad Safari / Retina override — makes CRT “pixels” visible
+   Paste at BOTTOM of styles.css
+   ========================================================= */
+@supports (-webkit-touch-callout: none) {
+
+  /* Make the RGB triads BIGGER + stronger (retina-friendly) */
+  :root{
+    --mask-size: 5px;         /* was 3px */
+    --mask-opacity: 0.42;     /* was ~0.28 */
+    --scanline-gap: 4px;      /* was 3px */
+    --scanline-opacity: 0.55; /* was ~0.42 */
+    --noise-opacity: 0.20;    /* was ~0.16 */
+    --crt-glow: 0.62;         /* more bloom */
+  }
+
+  /* Force crisper rendering (Safari sometimes blurs gradients) */
+  .terminal,
+  .terminal::after,
+  .crt__scanlines,
+  .crt__noise{
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+  }
+
+  /* Make scanlines “harder” */
+  .crt__scanlines{
+    opacity: .90 !important;
+    mix-blend-mode: multiply;
+    filter: contrast(1.25);
+  }
+
+  /* Make the RGB mask layer more aggressive */
+  .terminal::after{
+    opacity: 1 !important;
+    filter: contrast(1.15) saturate(1.25);
+    mix-blend-mode: multiply;
+  }
+
+  /* Slightly soften text so it blooms like a tube */
+  .screen{
+    filter: saturate(1.2) contrast(1.06) blur(.15px);
+  }
+
+  /* More vignette so the “tube edge” reads */
+  .crt__vignette{
+    opacity: .98 !important;
+  }
+}
